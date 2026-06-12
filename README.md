@@ -16,6 +16,12 @@ Moderner SSH-Launcher für die macOS-Menüleiste — inspiriert von [Shuttle](ht
 - Suche + Enter verbindet direkt zum ersten Treffer
 - Optional: Start beim Anmelden (Einstellungen → Allgemein)
 
+## Download
+
+Fertige Builds gibt es unter [Releases](https://github.com/DasDuo/ShuttleX/releases) — `ShuttleX-<version>-arm64.zip` herunterladen, entpacken, nach `/Applications` ziehen und einmalig freigeben (siehe „Weitergabe an einen anderen Mac“).
+
+Neue Releases entstehen automatisch: Tag pushen (`git tag v1.2.0 && git push origin v1.2.0`), GitHub Actions baut und veröffentlicht das Zip.
+
 ## Bauen & Starten
 
 ```sh
