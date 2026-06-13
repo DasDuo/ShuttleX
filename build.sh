@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Baut ShuttleX.app als reines arm64-Binary (Apple Silicon, keine Universal App).
+# Builds ShuttleX.app as a pure arm64 binary (Apple Silicon, not a universal app).
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -18,6 +18,6 @@ VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$APP/Co
 ditto -c -k --keepParent "$APP" "ShuttleX-$VERSION-arm64.zip"
 
 echo ""
-echo "Fertig: $PWD/$APP"
-echo "Zip:    $PWD/ShuttleX-$VERSION-arm64.zip"
+echo "Done: $PWD/$APP"
+echo "Zip:  $PWD/ShuttleX-$VERSION-arm64.zip"
 lipo -info "$APP/Contents/MacOS/ShuttleX"

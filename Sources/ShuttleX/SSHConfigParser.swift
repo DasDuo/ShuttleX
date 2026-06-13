@@ -1,7 +1,7 @@
 import Foundation
 
-/// Minimaler Parser für ~/.ssh/config: liest Host-Einträge (ohne Wildcards)
-/// und unterstützt Include-Direktiven.
+/// Minimal parser for ~/.ssh/config: reads Host entries (without wildcards)
+/// and supports Include directives.
 enum SSHConfigParser {
     static func parse(at url: URL) -> [SSHHost] {
         parse(at: url, depth: 0)
@@ -81,7 +81,7 @@ enum SSHConfigParser {
         return (key, value)
     }
 
-    /// Löst einen Include-Pfad auf (relativ zu ~/.ssh, ~ wird expandiert, * als Glob).
+    /// Resolves an Include path (relative to ~/.ssh, ~ is expanded, * as a glob).
     private static func resolveInclude(_ pattern: String, relativeTo configURL: URL) -> [URL] {
         var path = NSString(string: pattern).expandingTildeInPath
         if !path.hasPrefix("/") {

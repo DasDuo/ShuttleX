@@ -13,12 +13,12 @@ struct SettingsView: View {
         @Bindable var state = state
         Form {
             Section("Terminal") {
-                Picker("Terminal-App", selection: $state.terminal) {
+                Picker("Terminal app", selection: $state.terminal) {
                     ForEach(TerminalApp.installed) { app in
                         Text(app.displayName).tag(app)
                     }
                 }
-                Picker("Öffnen in", selection: Binding(
+                Picker("Open in", selection: Binding(
                     get: { state.effectiveLaunchMode },
                     set: { state.launchMode = $0 }
                 )) {
@@ -27,24 +27,24 @@ struct SettingsView: View {
                     }
                 }
                 if state.terminal.supportedModes == [.newWindow] {
-                    Text("\(state.terminal.displayName) lässt sich von außen nur mit neuen Fenstern starten.")
+                    Text("\(state.terminal.displayName) can only be launched in new windows from outside.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
                 if state.terminal == .terminal, state.effectiveLaunchMode == .newTab {
-                    Text("Für neue Tabs in Terminal.app braucht ShuttleX die Berechtigung unter Systemeinstellungen → Datenschutz & Sicherheit → Bedienungshilfen.")
+                    Text("New tabs in Terminal.app require ShuttleX to be allowed under System Settings → Privacy & Security → Accessibility.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
                 if state.terminal == .terminal || state.terminal == .iterm2 {
-                    Text("Beim ersten Verbinden fragt macOS einmalig nach der Berechtigung, \(state.terminal.displayName) zu steuern.")
+                    Text("On first connect, macOS asks once for permission to control \(state.terminal.displayName).")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
             }
 
-            Section("Server-Quelle") {
-                Picker("Quelle", selection: $state.source) {
+            Section("Server source") {
+                Picker("Source", selection: $state.source) {
                     ForEach(HostSource.allCases) { source in
                         Text(source.label).tag(source)
                     }
@@ -53,21 +53,21 @@ struct SettingsView: View {
 
                 switch state.source {
                 case .sshConfig:
-                    LabeledContent("Datei", value: "~/.ssh/config")
-                    LabeledContent("Gefundene Hosts", value: "\(state.hostCount)")
+                    LabeledContent("File", value: "~/.ssh/config")
+                    LabeledContent("Hosts found", value: "\(state.hostCount)")
                 case .json:
-                    LabeledContent("Datei", value: "~/.config/shuttlex/servers.json")
-                    LabeledContent("Gefundene Hosts", value: "\(state.hostCount)")
+                    LabeledContent("File", value: "~/.config/shuttlex/servers.json")
+                    LabeledContent("Hosts found", value: "\(state.hostCount)")
                     HStack {
-                        Button("Datei bearbeiten") {
+                        Button("Edit file") {
                             JSONHostStore.createSampleIfMissing(at: JSONHostStore.defaultURL)
                             NSWorkspace.shared.open(JSONHostStore.defaultURL)
                         }
-                        Button("Im Finder zeigen") {
+                        Button("Show in Finder") {
                             NSWorkspace.shared.activateFileViewerSelecting([JSONHostStore.defaultURL])
                         }
                         Spacer()
-                        Button("Neu laden") {
+                        Button("Reload") {
                             state.reload()
                         }
                     }
@@ -80,12 +80,12 @@ struct SettingsView: View {
                 }
             }
 
-            Section("Tabellen-Import") {
-                Text("Erzeugt das JSON aus einer Tabelle mit den Spalten User, Server DNS, Server IP, Cluster und Stage. Gruppiert wird nach „Stage · Cluster“.")
+            Section("Table import") {
+                Text("Generates the JSON from a spreadsheet with the columns User, Server DNS, Server IP, Cluster, and Stage. Grouped by “Stage · Cluster”.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
                 HStack {
-                    Button("Tabelle importieren …") { chooseFile() }
+                    Button("Import table …") { chooseFile() }
                     Spacer()
                     Text("CSV · TSV · XLSX")
                         .font(.caption)
@@ -98,8 +98,8 @@ struct SettingsView: View {
                 }
             }
 
-            Section("Allgemein") {
-                Toggle("Beim Anmelden starten", isOn: $launchAtLogin)
+            Section("General") {
+                Toggle("Launch at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, enabled in
                         toggleLaunchAtLogin(enabled)
                     }
@@ -144,7 +144,7 @@ struct SettingsView: View {
             }
             loginItemError = nil
         } catch {
-            loginItemError = "Konnte Login-Objekt nicht ändern: \(error.localizedDescription)"
+            loginItemError = "Could not change the login item: \(error.localizedDescription)"
             launchAtLogin = SMAppService.mainApp.status == .enabled
         }
     }

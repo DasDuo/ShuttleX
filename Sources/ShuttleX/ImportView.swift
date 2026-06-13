@@ -20,39 +20,39 @@ struct ImportView: View {
             header
             Divider()
             Form {
-                Section("Erkannt") {
-                    LabeledContent("Datei", value: result.fileName)
-                    LabeledContent("Server", value: "\(result.rows.count)")
-                    LabeledContent("Gruppen", value: "\(groupCount)")
+                Section("Detected") {
+                    LabeledContent("File", value: result.fileName)
+                    LabeledContent("Servers", value: "\(result.rows.count)")
+                    LabeledContent("Groups", value: "\(groupCount)")
                     if !result.mapping.hasHeader {
-                        Text("Keine Kopfzeile erkannt – Spalten in fester Reihenfolge gelesen: User, Server DNS, Server IP, Cluster, Stage.")
+                        Text("No header detected – columns read in fixed order: User, Server DNS, Server IP, Cluster, Stage.")
                             .font(.callout)
                             .foregroundStyle(.secondary)
                     }
                 }
 
-                Section("Optionen") {
-                    Picker("Verbinden über", selection: $target) {
+                Section("Options") {
+                    Picker("Connect via", selection: $target) {
                         ForEach(TableImporter.ConnectTarget.allCases) { option in
                             Text(option.label).tag(option)
                         }
                     }
                     .pickerStyle(.segmented)
 
-                    Picker("Modus", selection: $mode) {
+                    Picker("Mode", selection: $mode) {
                         ForEach(TableImporter.ImportMode.allCases) { option in
                             Text(option.label).tag(option)
                         }
                     }
                     .pickerStyle(.segmented)
                     Text(mode == .merge
-                        ? "Bestehende Einträge mit gleichem Namen werden aktualisiert, neue ergänzt, der Rest bleibt erhalten."
-                        : "Die JSON-Datei wird komplett durch diesen Import ersetzt.")
+                        ? "Existing entries with the same name are updated, new ones added, the rest kept."
+                        : "The JSON file is completely replaced by this import.")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
 
-                Section("Vorschau") {
+                Section("Preview") {
                     previewList
                 }
             }
@@ -70,9 +70,9 @@ struct ImportView: View {
                 .font(.system(size: 18))
                 .foregroundStyle(.blue)
             VStack(alignment: .leading, spacing: 1) {
-                Text("Tabelle importieren")
+                Text("Import table")
                     .font(.headline)
-                Text("Server aus einer CSV/Excel-Tabelle übernehmen")
+                Text("Import servers from a CSV/Excel spreadsheet")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -118,7 +118,7 @@ struct ImportView: View {
 
     private var footer: some View {
         HStack {
-            Button("Abbrechen", role: .cancel) { dismiss() }
+            Button("Cancel", role: .cancel) { dismiss() }
                 .keyboardShortcut(.cancelAction)
             if let importError {
                 Label(importError, systemImage: "exclamationmark.triangle.fill")
@@ -127,7 +127,7 @@ struct ImportView: View {
                     .lineLimit(1)
             }
             Spacer()
-            Button("Importieren") { runImport() }
+            Button("Import") { runImport() }
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)
         }
@@ -146,12 +146,12 @@ struct ImportView: View {
         }
         do {
             try JSONHostStore.write(fileToWrite, to: url)
-            // Nach dem Import die JSON-Quelle aktivieren, damit das Ergebnis sichtbar ist.
+            // Activate the JSON source after import so the result is visible.
             state.source = .json
             state.reload()
             dismiss()
         } catch {
-            importError = "Schreiben fehlgeschlagen: \(error.localizedDescription)"
+            importError = "Write failed: \(error.localizedDescription)"
         }
     }
 }

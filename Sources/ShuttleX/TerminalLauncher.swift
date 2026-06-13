@@ -9,11 +9,11 @@ enum LaunchError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notInstalled(let name):
-            return "\(name) ist nicht installiert."
+            return "\(name) is not installed."
         case .scriptFailed(let message):
-            return "AppleScript-Fehler: \(message)"
+            return "AppleScript error: \(message)"
         case .warpFailed:
-            return "Warp-Launch-Konfiguration konnte nicht erstellt werden."
+            return "Could not create the Warp launch configuration."
         }
     }
 }
@@ -43,10 +43,10 @@ enum TerminalLauncher {
         }
     }
 
-    // MARK: - Skripte
+    // MARK: - Scripts
 
-    /// Terminal.app: Fenster über `do script`, Tabs nur per Cmd+T-Tastendruck
-    /// (System Events, benötigt Bedienungshilfen-Berechtigung).
+    /// Terminal.app: windows via `do script`, tabs only via a Cmd+T keystroke
+    /// (System Events, requires the Accessibility permission).
     private static func terminalScript(_ command: String, mode: LaunchMode) -> String {
         let escaped = appleScriptEscaped(command)
         switch mode {
@@ -130,7 +130,7 @@ enum TerminalLauncher {
     private static func runAppleScript(_ source: String) throws {
         var errorInfo: NSDictionary?
         guard let script = NSAppleScript(source: source) else {
-            throw LaunchError.scriptFailed("Skript konnte nicht erstellt werden.")
+            throw LaunchError.scriptFailed("Could not create the script.")
         }
         script.executeAndReturnError(&errorInfo)
         if let errorInfo, let message = errorInfo[NSAppleScript.errorMessage] as? String {
@@ -144,7 +144,7 @@ enum TerminalLauncher {
             .replacingOccurrences(of: "\"", with: "\\\"")
     }
 
-    // MARK: - CLI-Argumente (Ghostty, Alacritty, kitty, WezTerm)
+    // MARK: - CLI arguments (Ghostty, Alacritty, kitty, WezTerm)
 
     private static func openApp(at url: URL, arguments: [String]) {
         let configuration = NSWorkspace.OpenConfiguration()
@@ -153,12 +153,12 @@ enum TerminalLauncher {
         configuration.activates = true
         NSWorkspace.shared.openApplication(at: url, configuration: configuration) { _, error in
             if let error {
-                NSLog("ShuttleX: Terminal-Start fehlgeschlagen: \(error.localizedDescription)")
+                NSLog("ShuttleX: failed to launch terminal: \(error.localizedDescription)")
             }
         }
     }
 
-    // MARK: - Warp (Launch Configuration + URL-Schema)
+    // MARK: - Warp (launch configuration + URL scheme)
 
     private static func launchWarp(_ host: SSHHost) throws {
         let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]

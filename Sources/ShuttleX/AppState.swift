@@ -26,8 +26,8 @@ final class AppState {
         }
     }
 
-    /// Der tatsächlich verwendete Modus — fällt auf „Neues Fenster" zurück,
-    /// wenn die gewählte Terminal-App den Modus nicht unterstützt.
+    /// The mode actually used — falls back to "new window" when the selected
+    /// terminal app doesn't support the chosen mode.
     var effectiveLaunchMode: LaunchMode {
         terminal.supportedModes.contains(launchMode) ? launchMode : .newWindow
     }
@@ -57,9 +57,9 @@ final class AppState {
         switch source {
         case .sshConfig:
             let hosts = SSHConfigParser.parse(at: Self.sshConfigURL)
-            groups = hosts.isEmpty ? [] : [HostGroup(name: "SSH-Config", hosts: hosts)]
+            groups = hosts.isEmpty ? [] : [HostGroup(name: "SSH config", hosts: hosts)]
             if !FileManager.default.fileExists(atPath: Self.sshConfigURL.path) {
-                lastError = "Keine ~/.ssh/config gefunden."
+                lastError = "No ~/.ssh/config found."
             }
         case .json:
             JSONHostStore.createSampleIfMissing(at: JSONHostStore.defaultURL)
@@ -67,7 +67,7 @@ final class AppState {
                 groups = try JSONHostStore.load(from: JSONHostStore.defaultURL)
             } catch {
                 groups = []
-                lastError = "JSON-Datei fehlerhaft: \(error.localizedDescription)"
+                lastError = "Invalid JSON file: \(error.localizedDescription)"
             }
         }
     }

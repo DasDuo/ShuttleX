@@ -1,30 +1,30 @@
 import AppKit
 import SwiftUI
 
-/// Eine einzige Quelle der Wahrheit für die Shuttle-Silhouette.
-/// Entwurfsraum ist 100×100, y zeigt nach unten (Nase oben).
+/// A single source of truth for the shuttle silhouette.
+/// Design space is 100×100, y points down (nose at top).
 enum ShuttleGeometry {
     enum Segment {
         case move(CGFloat, CGFloat)
         case line(CGFloat, CGFloat)
-        /// Ziel + zwei Kontrollpunkte (kubische Bézier-Kurve).
+        /// Target + two control points (cubic Bézier curve).
         case curve(CGFloat, CGFloat, CGFloat, CGFloat, CGFloat, CGFloat)
     }
 
-    // Seitenansicht des Orbiters, Nase nach rechts, im Quadrat zentriert.
+    // Side view of the orbiter, nose pointing right, centered in the square.
     static let segments: [Segment] = [
-        .move(95, 54),                    // Nasenspitze
-        .curve(76, 45, 93, 48, 86, 45),   // gerundete Nase hoch zum Cockpit
-        .line(38, 42),                    // Rumpfoberkante nach hinten
-        .line(24, 18),                    // Vorderkante Heckflosse zur Spitze
-        .line(16, 43),                    // Hinterkante Heckflosse zum Rumpf
-        .line(8, 49),                     // Heck oben
-        .line(8, 60),                     // stumpfes Heck (Triebwerke)
-        .line(28, 62),                    // Bauch bis Flügelansatz
-        .line(33, 82),                    // Deltaflügel-Spitze (unten hinten)
-        .line(58, 62),                    // Flügelvorderkante zurück zum Bauch
-        .line(84, 60),                    // Bauch nach vorne
-        .curve(95, 54, 90, 59, 95, 57),   // gerundete Nase unten zur Spitze
+        .move(95, 54),                    // nose tip
+        .curve(76, 45, 93, 48, 86, 45),   // rounded nose up to the cockpit
+        .line(38, 42),                    // top of the fuselage going back
+        .line(24, 18),                    // tail fin leading edge to the tip
+        .line(16, 43),                    // tail fin trailing edge to the fuselage
+        .line(8, 49),                     // rear top
+        .line(8, 60),                     // blunt rear (engines)
+        .line(28, 62),                    // belly to the wing root
+        .line(33, 82),                    // delta wing tip (bottom rear)
+        .line(58, 62),                    // wing leading edge back to the belly
+        .line(84, 60),                    // belly going forward
+        .curve(95, 54, 90, 59, 95, 57),   // rounded nose bottom to the tip
     ]
 
     private static func map(_ x: CGFloat, _ y: CGFloat, in rect: CGRect) -> CGPoint {
@@ -32,7 +32,7 @@ enum ShuttleGeometry {
                 y: rect.minY + y / 100 * rect.height)
     }
 
-    /// Baut die Silhouette in eine SwiftUI-Path (für den Header).
+    /// Builds the silhouette into a SwiftUI Path (for the header).
     static func swiftUIPath(in rect: CGRect) -> Path {
         var path = Path()
         for segment in segments {
@@ -51,7 +51,7 @@ enum ShuttleGeometry {
         return path
     }
 
-    /// Baut die Silhouette in eine NSBezierPath (für das Menüleisten-Icon).
+    /// Builds the silhouette into an NSBezierPath (for the menu bar icon).
     static func bezierPath(in rect: CGRect) -> NSBezierPath {
         let path = NSBezierPath()
         for segment in segments {
@@ -71,17 +71,17 @@ enum ShuttleGeometry {
     }
 }
 
-/// SwiftUI-Form für die Verwendung im Dropdown-Header.
+/// SwiftUI shape for use in the dropdown header.
 struct ShuttleShape: Shape {
     func path(in rect: CGRect) -> Path {
         ShuttleGeometry.swiftUIPath(in: rect)
     }
 }
 
-/// Das Menüleisten-Icon als Template-NSImage (passt sich hell/dunkel an).
+/// The menu bar icon as a template NSImage (adapts to light/dark).
 enum MenuBarIcon {
     static let image: NSImage = {
-        // flipped: true → Ursprung oben links, passend zum Entwurfsraum (y nach unten).
+        // flipped: true → origin at top left, matching the design space (y downward).
         let image = NSImage(size: NSSize(width: 18, height: 18), flipped: true) { rect in
             NSColor.black.setFill()
             ShuttleGeometry.bezierPath(in: rect).fill()

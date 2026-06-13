@@ -1,6 +1,6 @@
 import Foundation
 
-/// Lädt Server aus einer eigenen JSON-Datei (~/.config/shuttlex/servers.json).
+/// Loads servers from a dedicated JSON file (~/.config/shuttlex/servers.json).
 enum JSONHostStore {
     struct File: Codable {
         var groups: [Group]?
@@ -29,7 +29,7 @@ enum JSONHostStore {
 
         var groups: [HostGroup] = []
         if let ungrouped = file.hosts, !ungrouped.isEmpty {
-            groups.append(HostGroup(name: "Server", hosts: ungrouped.map(makeHost)))
+            groups.append(HostGroup(name: "Servers", hosts: ungrouped.map(makeHost)))
         }
         for group in file.groups ?? [] {
             groups.append(HostGroup(name: group.name, hosts: group.hosts.map(makeHost)))
@@ -49,7 +49,7 @@ enum JSONHostStore {
         return SSHHost(name: entry.name, detail: target, command: command)
     }
 
-    /// Schreibt die JSON-Datei sauber formatiert.
+    /// Writes the JSON file nicely formatted.
     static func write(_ file: File, to url: URL) throws {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
@@ -61,7 +61,7 @@ enum JSONHostStore {
         try data.write(to: url, options: .atomic)
     }
 
-    /// Lädt die rohe Datei (für Merge); fehlt sie, kommt eine leere Struktur zurück.
+    /// Loads the raw file (for merging); if it's missing, returns an empty structure.
     static func loadFile(from url: URL) -> File {
         guard let data = try? Data(contentsOf: url),
               let file = try? JSONDecoder().decode(File.self, from: data) else {
@@ -70,8 +70,8 @@ enum JSONHostStore {
         return file
     }
 
-    /// Führt importierte Gruppen in eine bestehende Datei ein: gleiche Gruppen-
-    /// und Eintragsnamen werden aktualisiert, neue angehängt, alles andere bleibt.
+    /// Merges imported groups into an existing file: matching group and entry
+    /// names are updated, new ones appended, everything else kept.
     static func merge(_ incoming: File, into existing: File) -> File {
         var groups = existing.groups ?? []
         for newGroup in incoming.groups ?? [] {
@@ -92,7 +92,7 @@ enum JSONHostStore {
         return File(groups: groups, hosts: existing.hosts)
     }
 
-    /// Legt eine Beispiel-Datei an, falls noch keine existiert.
+    /// Creates a sample file if none exists yet.
     @discardableResult
     static func createSampleIfMissing(at url: URL) -> Bool {
         guard !FileManager.default.fileExists(atPath: url.path) else { return false }
@@ -100,11 +100,11 @@ enum JSONHostStore {
         {
           "groups": [
             {
-              "name": "Beispiel",
+              "name": "Example",
               "hosts": [
-                { "name": "Webserver", "user": "root", "host": "web1.example.com" },
-                { "name": "Datenbank", "user": "admin", "host": "db.example.com", "port": 2222 },
-                { "name": "Via Jumphost", "command": "ssh -J jump.example.com root@10.0.0.5" }
+                { "name": "Web server", "user": "root", "host": "web1.example.com" },
+                { "name": "Database", "user": "admin", "host": "db.example.com", "port": 2222 },
+                { "name": "Via jump host", "command": "ssh -J jump.example.com root@10.0.0.5" }
               ]
             }
           ]

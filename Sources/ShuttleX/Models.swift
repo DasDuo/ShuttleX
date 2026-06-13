@@ -1,7 +1,7 @@
 import AppKit
 import Foundation
 
-/// Ein einzelner SSH-Eintrag, egal aus welcher Quelle er stammt.
+/// A single SSH entry, regardless of which source it came from.
 struct SSHHost: Identifiable, Hashable {
     let name: String
     let detail: String?
@@ -26,7 +26,7 @@ enum HostSource: String, CaseIterable, Identifiable {
     var label: String {
         switch self {
         case .sshConfig: return "~/.ssh/config"
-        case .json: return "JSON-Datei"
+        case .json: return "JSON file"
         }
     }
 }
@@ -41,10 +41,10 @@ enum LaunchMode: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .newWindow: return "Neues Fenster"
-        case .newTab: return "Neuer Tab"
-        case .splitRight: return "Split rechts"
-        case .splitDown: return "Split unten"
+        case .newWindow: return "New window"
+        case .newTab: return "New tab"
+        case .splitRight: return "Split right"
+        case .splitDown: return "Split down"
         }
     }
 
@@ -81,8 +81,8 @@ enum TerminalApp: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Welche Öffnen-Modi die jeweilige App unterstützt. Die CLI-basierten
-    /// Terminals lassen sich von außen nur mit neuen Fenstern starten.
+    /// Which open modes each app supports. The CLI-based terminals can only be
+    /// launched with new windows from the outside.
     var supportedModes: [LaunchMode] {
         switch self {
         case .iterm2: return LaunchMode.allCases

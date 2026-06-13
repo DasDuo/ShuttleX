@@ -1,18 +1,18 @@
 import Foundation
 
-/// Liest Tabellen (CSV, TSV, Excel .xlsx) mit den Spalten
-/// User, Server DNS, Server IP, Cluster, Stage und baut daraus das ShuttleX-JSON.
+/// Reads spreadsheets (CSV, TSV, Excel .xlsx) with the columns
+/// User, Server DNS, Server IP, Cluster, Stage and builds the ShuttleX JSON.
 enum TableImporter {
     enum ConnectTarget: String, CaseIterable, Identifiable {
         case dns, ip
         var id: String { rawValue }
-        var label: String { self == .dns ? "DNS-Name" : "IP-Adresse" }
+        var label: String { self == .dns ? "DNS name" : "IP address" }
     }
 
     enum ImportMode: String, CaseIterable, Identifiable {
         case merge, replace
         var id: String { rawValue }
-        var label: String { self == .merge ? "Zusammenführen" : "Ersetzen" }
+        var label: String { self == .merge ? "Merge" : "Replace" }
     }
 
     enum ImportError: LocalizedError {
@@ -22,9 +22,9 @@ enum TableImporter {
 
         var errorDescription: String? {
             switch self {
-            case .unsupported(let ext): return "Format „.\(ext)“ wird nicht unterstützt (CSV, TSV oder XLSX)."
+            case .unsupported(let ext): return "Format “.\(ext)” is not supported (CSV, TSV, or XLSX)."
             case .unreadable(let reason): return reason
-            case .noRows: return "In der Tabelle wurden keine Server gefunden."
+            case .noRows: return "No servers found in the spreadsheet."
             }
         }
     }
@@ -46,7 +46,7 @@ enum TableImporter {
         var fileName: String
     }
 
-    // MARK: - Einlesen
+    // MARK: - Reading
 
     static func parse(url: URL) throws -> ParseResult {
         let ext = url.pathExtension.lowercased()
@@ -59,10 +59,10 @@ enum TableImporter {
             } else if let latin = try? String(contentsOf: url, encoding: .isoLatin1) {
                 text = latin
             } else {
-                throw ImportError.unreadable("Datei konnte nicht gelesen werden.")
+                throw ImportError.unreadable("Could not read the file.")
             }
-            // Zeilenenden vereinheitlichen: Swift behandelt "\r\n" sonst als ein
-            // einzelnes Character-Grapheme, wodurch keine Zeile umbrechen würde.
+            // Normalize line endings: Swift otherwise treats "\r\n" as a single
+            // Character grapheme, so no line would break.
             let normalized = text
                 .replacingOccurrences(of: "\r\n", with: "\n")
                 .replacingOccurrences(of: "\r", with: "\n")
@@ -90,7 +90,7 @@ enum TableImporter {
         return ParseResult(rows: rows, mapping: mapping, fileName: url.lastPathComponent)
     }
 
-    // MARK: - JSON-Aufbau
+    // MARK: - JSON construction
 
     static func buildFile(rows: [Row], target: ConnectTarget) -> JSONHostStore.File {
         var order: [String] = []
@@ -118,10 +118,10 @@ enum TableImporter {
         return JSONHostStore.File(groups: groups, hosts: nil)
     }
 
-    /// Gruppenname „Stage · Cluster“ (leere Teile werden ausgelassen).
+    /// Group name "Stage · Cluster" (empty parts are omitted).
     private static func groupName(stage: String, cluster: String) -> String {
         let parts = [stage, cluster].filter { !$0.isEmpty }
-        return parts.isEmpty ? "Server" : parts.joined(separator: " · ")
+        return parts.isEmpty ? "Servers" : parts.joined(separator: " · ")
     }
 
     private static func connectHost(_ row: Row, target: ConnectTarget) -> String {
@@ -131,12 +131,12 @@ enum TableImporter {
         }
     }
 
-    /// Anzeigename = Wert der Namens-/DNS-Spalte (wortwörtlich), sonst IP.
+    /// Display name = value of the name/DNS column (verbatim), otherwise the IP.
     private static func displayName(_ row: Row) -> String {
         row.dns.isEmpty ? row.ip : row.dns
     }
 
-    // MARK: - Spalten-Erkennung
+    // MARK: - Column detection
 
     private static func detectColumns(in grid: [[String]]) -> ColumnMapping {
         guard let header = grid.first else { return ColumnMapping() }
@@ -152,13 +152,13 @@ enum TableImporter {
         mapping.ip = find(["ip", "ipv4", "adresse", "address"])
         mapping.cluster = find(["cluster"])
         mapping.stage = find(["stage", "umgebung", "environment", "env"])
-        // Erst ab zwei Treffern als Kopfzeile werten – ein einzelner zufälliger
-        // Wert wie „clusterA“ soll nicht eine ganze Datenzeile schlucken.
+        // Only treat as a header from two matches on – a single coincidental
+        // value like "clusterA" shouldn't swallow a whole data row.
         let matches = [mapping.user, mapping.dns, mapping.ip,
                        mapping.cluster, mapping.stage].compactMap { $0 }.count
         mapping.hasHeader = matches >= 2
 
-        // Ohne erkennbare Kopfzeile: feste Reihenfolge laut Vorgabe.
+        // No recognizable header: fixed order as specified.
         if !mapping.hasHeader {
             let width = grid.first?.count ?? 0
             mapping.user = width > 0 ? 0 : nil
@@ -218,13 +218,13 @@ enum TableImporter {
             row.append(field)
             rows.append(row)
         }
-        // Leerzeilen verwerfen.
+        // Drop empty lines.
         return rows.filter { cols in
             !(cols.allSatisfy { $0.trimmingCharacters(in: .whitespaces).isEmpty })
         }
     }
 
-    // MARK: - XLSX (entpacken + XML lesen, ohne Fremdbibliotheken)
+    // MARK: - XLSX (unzip + read XML, without third-party libraries)
 
     private static func readXLSX(_ url: URL) throws -> [[String]] {
         let tmp = URL(fileURLWithPath: NSTemporaryDirectory())
@@ -241,10 +241,10 @@ enum TableImporter {
             try process.run()
             process.waitUntilExit()
         } catch {
-            throw ImportError.unreadable("Excel-Datei konnte nicht entpackt werden.")
+            throw ImportError.unreadable("Could not unzip the Excel file.")
         }
         guard process.terminationStatus == 0 else {
-            throw ImportError.unreadable("Excel-Datei konnte nicht entpackt werden.")
+            throw ImportError.unreadable("Could not unzip the Excel file.")
         }
 
         let sharedStrings = (try? String(contentsOf: tmp.appendingPathComponent("xl/sharedStrings.xml"), encoding: .utf8))
@@ -252,7 +252,7 @@ enum TableImporter {
 
         guard let sheetURL = firstWorksheet(in: tmp),
               let sheetXML = try? String(contentsOf: sheetURL, encoding: .utf8) else {
-            throw ImportError.unreadable("Arbeitsblatt nicht gefunden.")
+            throw ImportError.unreadable("Worksheet not found.")
         }
         return parseSheet(sheetXML, sharedStrings: sharedStrings)
     }
@@ -293,7 +293,7 @@ enum TableImporter {
     }
 }
 
-// MARK: - XMLParser-Delegates
+// MARK: - XMLParser delegates
 
 private final class SharedStringsParser: NSObject, XMLParserDelegate {
     var strings: [String] = []

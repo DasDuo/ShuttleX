@@ -68,7 +68,7 @@ struct MenuView: View {
                 Image(systemName: "arrow.clockwise")
             }
             .buttonStyle(.borderless)
-            .help("Neu laden")
+            .help("Reload")
             Button {
                 dismissMenuWindow()
                 NSApp.activate(ignoringOtherApps: true)
@@ -77,20 +77,20 @@ struct MenuView: View {
                 Image(systemName: "gearshape")
             }
             .buttonStyle(.borderless)
-            .help("Einstellungen")
+            .help("Settings")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
     }
 
-    // MARK: - Suche
+    // MARK: - Search
 
     private var searchField: some View {
         HStack(spacing: 6) {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 12))
                 .foregroundStyle(.secondary)
-            TextField("Server suchen …", text: $query)
+            TextField("Search servers …", text: $query)
                 .textFieldStyle(.plain)
                 .font(.system(size: 13))
                 .focused($searchFocused)
@@ -103,7 +103,7 @@ struct MenuView: View {
         .padding(.bottom, 10)
     }
 
-    // MARK: - Liste
+    // MARK: - List
 
     @ViewBuilder
     private var content: some View {
@@ -139,8 +139,8 @@ struct MenuView: View {
                     listContentHeight = height
                 }
             }
-            // Das MenuBarExtra-Fenster misst ScrollView-Inhalte nicht zuverlässig,
-            // daher wird die gemessene Inhaltshöhe explizit gesetzt (gedeckelt auf 380).
+            // The MenuBarExtra window doesn't measure ScrollView content reliably,
+            // so the measured content height is set explicitly (capped at 380).
             .frame(height: listContentHeight > 0 ? min(listContentHeight, 380) : nil)
         }
     }
@@ -150,13 +150,13 @@ struct MenuView: View {
             Image(systemName: "server.rack")
                 .font(.system(size: 28))
                 .foregroundStyle(.tertiary)
-            Text(query.isEmpty ? "Keine Server gefunden" : "Keine Treffer für „\(query)“")
+            Text(query.isEmpty ? "No servers found" : "No matches for “\(query)”")
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.secondary)
             if query.isEmpty {
                 Text(state.source == .sshConfig
-                    ? "Lege Hosts in ~/.ssh/config an."
-                    : "Bearbeite die JSON-Datei in den Einstellungen.")
+                    ? "Add hosts to ~/.ssh/config."
+                    : "Edit the JSON file in Settings.")
                     .font(.system(size: 11))
                     .foregroundStyle(.tertiary)
                     .multilineTextAlignment(.center)
@@ -196,7 +196,7 @@ struct MenuView: View {
             .buttonStyle(.borderless)
             .font(.system(size: 12))
             .fixedSize()
-            .help("Terminal-App für neue Verbindungen")
+            .help("Terminal app for new connections")
             if state.terminal.supportedModes.count > 1 {
                 Picker(selection: Binding(
                     get: { state.effectiveLaunchMode },
@@ -212,7 +212,7 @@ struct MenuView: View {
                 .buttonStyle(.borderless)
                 .font(.system(size: 12))
                 .fixedSize()
-                .help("Öffnen in: \(state.effectiveLaunchMode.label)")
+                .help("Open in: \(state.effectiveLaunchMode.label)")
             }
             Spacer()
             Button {
@@ -221,13 +221,13 @@ struct MenuView: View {
                 Image(systemName: "power")
             }
             .buttonStyle(.borderless)
-            .help("ShuttleX beenden")
+            .help("Quit ShuttleX")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
     }
 
-    // MARK: - Aktionen
+    // MARK: - Actions
 
     private func connect(_ host: SSHHost) {
         dismissMenuWindow()
@@ -240,10 +240,10 @@ struct MenuView: View {
         }
     }
 
-    // MARK: - Gruppen ein-/ausklappen
+    // MARK: - Expand/collapse groups
 
-    /// Bei aktiver Suche und bei nur einer Gruppe immer ausgeklappt,
-    /// sonst standardmäßig zugeklappt.
+    /// Always expanded while searching and when there's only one group;
+    /// collapsed by default otherwise.
     private func isExpanded(_ group: HostGroup) -> Bool {
         if !query.isEmpty { return true }
         if filteredGroups.count == 1 { return true }
@@ -267,7 +267,7 @@ struct MenuView: View {
     }
 }
 
-// MARK: - Gruppenkopf
+// MARK: - Group header
 
 private struct GroupHeader: View {
     let name: String
@@ -309,7 +309,7 @@ private struct GroupHeader: View {
     }
 }
 
-// MARK: - Zeile
+// MARK: - Row
 
 private struct HostRow: View {
     let host: SSHHost
