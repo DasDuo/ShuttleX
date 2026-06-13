@@ -6,6 +6,7 @@ struct MenuView: View {
 
     @State private var query = ""
     @State private var listContentHeight: CGFloat = 0
+    @State private var expandedGroups: Set<String> = []
     @FocusState private var searchFocused: Bool
 
     private var filteredGroups: [HostGroup] {
@@ -112,15 +113,19 @@ struct MenuView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 2) {
                     ForEach(filteredGroups) { group in
-                        Text(group.name)
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 10)
-                            .padding(.top, 8)
-                            .padding(.bottom, 2)
-                        ForEach(group.hosts) { host in
-                            HostRow(host: host) {
-                                connect(host)
+                        GroupHeader(
+                            name: group.name,
+                            count: group.hosts.count,
+                            expanded: isExpanded(group)
+                        ) {
+                            toggle(group)
+                        }
+                        if isExpanded(group) {
+                            ForEach(group.hosts) { host in
+                                HostRow(host: host) {
+                                    connect(host)
+                                }
+                                .padding(.leading, 12)
                             }
                         }
                     }
@@ -235,10 +240,72 @@ struct MenuView: View {
         }
     }
 
+    // MARK: - Gruppen ein-/ausklappen
+
+    /// Bei aktiver Suche und bei nur einer Gruppe immer ausgeklappt,
+    /// sonst standardmäßig zugeklappt.
+    private func isExpanded(_ group: HostGroup) -> Bool {
+        if !query.isEmpty { return true }
+        if filteredGroups.count == 1 { return true }
+        return expandedGroups.contains(group.name)
+    }
+
+    private func toggle(_ group: HostGroup) {
+        withAnimation(.easeInOut(duration: 0.15)) {
+            if expandedGroups.contains(group.name) {
+                expandedGroups.remove(group.name)
+            } else {
+                expandedGroups.insert(group.name)
+            }
+        }
+    }
+
     private func dismissMenuWindow() {
         for window in NSApp.windows where window.className.contains("MenuBarExtra") {
             window.close()
         }
+    }
+}
+
+// MARK: - Gruppenkopf
+
+private struct GroupHeader: View {
+    let name: String
+    let count: Int
+    let expanded: Bool
+    let action: () -> Void
+
+    @State private var hovered = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .rotationEffect(.degrees(expanded ? 90 : 0))
+                    .frame(width: 12)
+                Text(name)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("\(count)")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 1)
+                    .background(.quaternary.opacity(0.6), in: Capsule())
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .contentShape(RoundedRectangle(cornerRadius: 7))
+        }
+        .buttonStyle(.plain)
+        .background(
+            RoundedRectangle(cornerRadius: 7)
+                .fill(hovered ? AnyShapeStyle(.quaternary.opacity(0.5)) : AnyShapeStyle(.clear))
+        )
+        .onHover { hovered = $0 }
     }
 }
 

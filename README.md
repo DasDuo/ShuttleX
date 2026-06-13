@@ -4,7 +4,7 @@ Moderner SSH-Launcher für die macOS-Menüleiste — inspiriert von [Shuttle](ht
 
 ## Features
 
-- Lebt ausschließlich in der Menüleiste (kein Dock-Icon), modernes Dropdown-Panel mit Suchfeld, Hover-Effekten und Gruppen
+- Lebt ausschließlich in der Menüleiste (kein Dock-Icon), modernes Dropdown-Panel mit Suchfeld, Hover-Effekten und **einklappbaren Gruppen** (standardmäßig zugeklappt, per Klick aufklappen; bei Suche werden Treffer automatisch eingeblendet)
 - **Server-Quelle umschaltbar** (Einstellungen → Server-Quelle):
   - `~/.ssh/config` — Hosts werden direkt ausgelesen (inkl. `Include`-Direktiven, Wildcard-Hosts wie `*` werden ignoriert)
   - JSON-Datei unter `~/.config/shuttlex/servers.json` (wird beim ersten Umschalten mit Beispiel-Einträgen angelegt)
@@ -49,6 +49,7 @@ Erwartete Spalten (Reihenfolge egal, Kopfzeile wird automatisch erkannt; deutsch
 
 - **Format**: CSV, TSV oder Excel (`.xlsx`). Trennzeichen `,` und `;` werden automatisch erkannt. Google Sheets: einfach als CSV oder Excel exportieren (Datei → Herunterladen).
 - **IP oder DNS**: Vor dem Import wählst du, ob als Verbindungsziel der DNS-Name oder die IP-Adresse genutzt wird (fehlt der gewählte Wert, wird auf den anderen zurückgegriffen).
+- **Name**: Die Spalte „Server DNS“ (bzw. „Name“) wird wortwörtlich als Anzeigename im Menü genutzt — sie muss kein echter DNS sein. Als Verbindungsziel kannst du davon unabhängig die IP wählen.
 - **Gruppierung**: Es entsteht je Kombination eine Gruppe `Stage · Cluster` (z. B. „Prod · web“) — so bleibt das Menü übersichtlich.
 - **Modus**: *Zusammenführen* aktualisiert gleichnamige Einträge und ergänzt neue (manuell gepflegte Server bleiben erhalten), *Ersetzen* überschreibt die JSON-Datei komplett.
 

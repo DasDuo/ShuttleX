@@ -131,12 +131,9 @@ enum TableImporter {
         }
     }
 
-    /// Anzeigename = kurzer DNS-Name (erstes Label), sonst IP.
+    /// Anzeigename = Wert der Namens-/DNS-Spalte (wortwörtlich), sonst IP.
     private static func displayName(_ row: Row) -> String {
-        if !row.dns.isEmpty {
-            return row.dns.split(separator: ".").first.map(String.init) ?? row.dns
-        }
-        return row.ip
+        row.dns.isEmpty ? row.ip : row.dns
     }
 
     // MARK: - Spalten-Erkennung
@@ -151,7 +148,7 @@ enum TableImporter {
 
         var mapping = ColumnMapping()
         mapping.user = find(["user", "benutzer", "login", "account"])
-        mapping.dns = find(["dns", "fqdn", "hostname", "host name", "servername", "domain"])
+        mapping.dns = find(["dns", "fqdn", "hostname", "host name", "servername", "server name", "name", "domain", "host"])
         mapping.ip = find(["ip", "ipv4", "adresse", "address"])
         mapping.cluster = find(["cluster"])
         mapping.stage = find(["stage", "umgebung", "environment", "env"])
