@@ -49,6 +49,49 @@ enum JSONHostStore {
         return SSHHost(name: entry.name, detail: target, command: command)
     }
 
+    /// Schreibt die JSON-Datei sauber formatiert.
+    static func write(_ file: File, to url: URL) throws {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        let data = try encoder.encode(file)
+        try FileManager.default.createDirectory(
+            at: url.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        try data.write(to: url, options: .atomic)
+    }
+
+    /// Lädt die rohe Datei (für Merge); fehlt sie, kommt eine leere Struktur zurück.
+    static func loadFile(from url: URL) -> File {
+        guard let data = try? Data(contentsOf: url),
+              let file = try? JSONDecoder().decode(File.self, from: data) else {
+            return File(groups: [], hosts: nil)
+        }
+        return file
+    }
+
+    /// Führt importierte Gruppen in eine bestehende Datei ein: gleiche Gruppen-
+    /// und Eintragsnamen werden aktualisiert, neue angehängt, alles andere bleibt.
+    static func merge(_ incoming: File, into existing: File) -> File {
+        var groups = existing.groups ?? []
+        for newGroup in incoming.groups ?? [] {
+            if let index = groups.firstIndex(where: { $0.name == newGroup.name }) {
+                var hosts = groups[index].hosts
+                for entry in newGroup.hosts {
+                    if let hostIndex = hosts.firstIndex(where: { $0.name == entry.name }) {
+                        hosts[hostIndex] = entry
+                    } else {
+                        hosts.append(entry)
+                    }
+                }
+                groups[index].hosts = hosts
+            } else {
+                groups.append(newGroup)
+            }
+        }
+        return File(groups: groups, hosts: existing.hosts)
+    }
+
     /// Legt eine Beispiel-Datei an, falls noch keine existiert.
     @discardableResult
     static func createSampleIfMissing(at url: URL) -> Bool {

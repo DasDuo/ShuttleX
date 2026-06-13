@@ -1,10 +1,13 @@
 import ServiceManagement
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct SettingsView: View {
     @Environment(AppState.self) private var state
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var loginItemError: String?
+    @State private var parseResult: TableImporter.ParseResult?
+    @State private var importError: String?
 
     var body: some View {
         @Bindable var state = state
@@ -77,6 +80,24 @@ struct SettingsView: View {
                 }
             }
 
+            Section("Tabellen-Import") {
+                Text("Erzeugt das JSON aus einer Tabelle mit den Spalten User, Server DNS, Server IP, Cluster und Stage. Gruppiert wird nach „Stage · Cluster“.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                HStack {
+                    Button("Tabelle importieren …") { chooseFile() }
+                    Spacer()
+                    Text("CSV · TSV · XLSX")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                if let importError {
+                    Label(importError, systemImage: "exclamationmark.triangle.fill")
+                        .font(.callout)
+                        .foregroundStyle(.orange)
+                }
+            }
+
             Section("Allgemein") {
                 Toggle("Beim Anmelden starten", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, enabled in
@@ -93,6 +114,25 @@ struct SettingsView: View {
         .formStyle(.grouped)
         .frame(width: 460)
         .fixedSize(horizontal: false, vertical: true)
+        .sheet(item: $parseResult) { result in
+            ImportView(result: result, state: state)
+        }
+    }
+
+    private func chooseFile() {
+        importError = nil
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        var types: [UTType] = [.commaSeparatedText, .tabSeparatedText, .plainText]
+        if let xlsx = UTType(filenameExtension: "xlsx") { types.append(xlsx) }
+        panel.allowedContentTypes = types
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+        do {
+            parseResult = try TableImporter.parse(url: url)
+        } catch {
+            importError = error.localizedDescription
+        }
     }
 
     private func toggleLaunchAtLogin(_ enabled: Bool) {

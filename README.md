@@ -37,6 +37,23 @@ Damit „Beim Anmelden starten“ zuverlässig funktioniert, die App nach dem Bu
 cp -R build/ShuttleX.app /Applications/
 ```
 
+## Tabellen-Import (CSV / Excel / Google Sheets)
+
+ShuttleX kann das JSON direkt aus einer Tabelle erzeugen — praktisch, wenn du viele Server pflegst. Einstellungen → **Tabellen-Import → „Tabelle importieren …“**.
+
+Erwartete Spalten (Reihenfolge egal, Kopfzeile wird automatisch erkannt; deutsche/englische Bezeichnungen werden erkannt):
+
+| User | Server DNS | Server IP | Cluster | Stage |
+|------|-----------|-----------|---------|-------|
+| deploy | web01.prod.example.com | 10.0.1.11 | web | Prod |
+
+- **Format**: CSV, TSV oder Excel (`.xlsx`). Trennzeichen `,` und `;` werden automatisch erkannt. Google Sheets: einfach als CSV oder Excel exportieren (Datei → Herunterladen).
+- **IP oder DNS**: Vor dem Import wählst du, ob als Verbindungsziel der DNS-Name oder die IP-Adresse genutzt wird (fehlt der gewählte Wert, wird auf den anderen zurückgegriffen).
+- **Gruppierung**: Es entsteht je Kombination eine Gruppe `Stage · Cluster` (z. B. „Prod · web“) — so bleibt das Menü übersichtlich.
+- **Modus**: *Zusammenführen* aktualisiert gleichnamige Einträge und ergänzt neue (manuell gepflegte Server bleiben erhalten), *Ersetzen* überschreibt die JSON-Datei komplett.
+
+Eine Beispieldatei liegt unter [`examples/servers-sample.csv`](examples/servers-sample.csv).
+
 ## JSON-Format
 
 `~/.config/shuttlex/servers.json`:

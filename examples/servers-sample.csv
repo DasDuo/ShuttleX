@@ -1,0 +1,6 @@
+User,Server DNS,Server IP,Cluster,Stage
+deploy,web01.prod.example.com,10.0.1.11,web,Prod
+deploy,web02.prod.example.com,10.0.1.12,web,Prod
+root,db01.prod.example.com,10.0.2.21,db,Prod
+admin,web01.dev.example.com,10.1.1.11,web,Dev
+admin,db01.dev.example.com,10.1.2.21,db,Dev
