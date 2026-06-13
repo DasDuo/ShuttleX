@@ -32,6 +32,24 @@ final class AppState {
         terminal.supportedModes.contains(launchMode) ? launchMode : .newWindow
     }
 
+    /// Path to the JSON file — a user-defined location or the default.
+    var jsonURL: URL {
+        if let custom = UserDefaults.standard.string(forKey: "jsonPath"), !custom.isEmpty {
+            return URL(fileURLWithPath: (custom as NSString).expandingTildeInPath)
+        }
+        return JSONHostStore.defaultURL
+    }
+
+    var usingCustomJSONPath: Bool {
+        !(UserDefaults.standard.string(forKey: "jsonPath") ?? "").isEmpty
+    }
+
+    /// Sets a custom JSON path (or `nil` to fall back to the default) and reloads.
+    func setJSONPath(_ url: URL?) {
+        UserDefaults.standard.set(url?.path, forKey: "jsonPath")
+        if source == .json { reload() }
+    }
+
     private(set) var groups: [HostGroup] = []
     var lastError: String?
 
@@ -62,9 +80,13 @@ final class AppState {
                 lastError = "No ~/.ssh/config found."
             }
         case .json:
-            JSONHostStore.createSampleIfMissing(at: JSONHostStore.defaultURL)
+            let url = jsonURL
+            let existedBefore = FileManager.default.fileExists(atPath: url.path)
+            JSONHostStore.createSampleIfMissing(at: url)
+            // Archive the current version (captures manual edits made outside the app).
+            if existedBefore { JSONHostStore.snapshotIfChanged(url) }
             do {
-                groups = try JSONHostStore.load(from: JSONHostStore.defaultURL)
+                groups = try JSONHostStore.load(from: url)
             } catch {
                 groups = []
                 lastError = "Invalid JSON file: \(error.localizedDescription)"

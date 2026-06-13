@@ -49,8 +49,9 @@ enum JSONHostStore {
         return SSHHost(name: entry.name, detail: target, command: command)
     }
 
-    /// Writes the JSON file nicely formatted.
+    /// Writes the JSON file nicely formatted (snapshots the previous version first).
     static func write(_ file: File, to url: URL) throws {
+        snapshotIfChanged(url)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
         let data = try encoder.encode(file)
@@ -59,6 +60,59 @@ enum JSONHostStore {
             withIntermediateDirectories: true
         )
         try data.write(to: url, options: .atomic)
+    }
+
+    // MARK: - Backup history
+
+    private static let backupStampFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        // Millisecond resolution so two snapshots in the same second (e.g. the
+        // pre- and post-import archives) don't collide on one filename.
+        formatter.dateFormat = "yyyyMMdd-HHmmss-SSS"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
+
+    /// Archives the current file next to it (e.g. `servers.backup-20260614-101530-123.json`)
+    /// whenever its content differs from the newest existing backup, keeping `keep` versions.
+    static func snapshotIfChanged(_ url: URL, keep: Int = 3) {
+        guard let data = try? Data(contentsOf: url) else { return }
+        let directory = url.deletingLastPathComponent()
+        let base = url.deletingPathExtension().lastPathComponent
+        let ext = url.pathExtension.isEmpty ? "bak" : url.pathExtension
+
+        let existing = backups(in: directory, base: base, ext: ext)
+        if let newest = existing.first, (try? Data(contentsOf: newest)) == data { return }
+
+        let stamp = backupStampFormatter.string(from: Date())
+        var destination = directory.appendingPathComponent("\(base).backup-\(stamp).\(ext)")
+        var counter = 1
+        while FileManager.default.fileExists(atPath: destination.path) {
+            destination = directory.appendingPathComponent("\(base).backup-\(stamp)-\(counter).\(ext)")
+            counter += 1
+        }
+        try? data.write(to: destination, options: .atomic)
+
+        for old in backups(in: directory, base: base, ext: ext).dropFirst(keep) {
+            try? FileManager.default.removeItem(at: old)
+        }
+    }
+
+    /// Backup files for `base.ext` in `directory`, newest first (by modification date).
+    static func backups(in directory: URL, base: String, ext: String) -> [URL] {
+        let prefix = "\(base).backup-"
+        let suffix = ".\(ext)"
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
+        let urls = names
+            .filter { $0.hasPrefix(prefix) && $0.hasSuffix(suffix) }
+            .map { directory.appendingPathComponent($0) }
+        func modified(_ url: URL) -> Date {
+            (try? url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate) ?? .distantPast
+        }
+        return urls.sorted { a, b in
+            let (da, db) = (modified(a), modified(b))
+            return da != db ? da > db : a.lastPathComponent > b.lastPathComponent
+        }
     }
 
     /// Loads the raw file (for merging); if it's missing, returns an empty structure.
