@@ -56,21 +56,38 @@ struct SettingsView: View {
                     LabeledContent("File", value: "~/.ssh/config")
                     LabeledContent("Hosts found", value: "\(state.hostCount)")
                 case .json:
-                    LabeledContent("File", value: "~/.config/shuttlex/servers.json")
+                    LabeledContent("File") {
+                        Text((state.jsonURL.path as NSString).abbreviatingWithTildeInPath)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .textSelection(.enabled)
+                    }
                     LabeledContent("Hosts found", value: "\(state.hostCount)")
                     HStack {
+                        Button("Choose…") { chooseJSONLocation() }
+                        if state.usingCustomJSONPath {
+                            Button("Reset to default") { state.setJSONPath(nil) }
+                        }
+                        Spacer()
+                    }
+                    HStack {
                         Button("Edit file") {
-                            JSONHostStore.createSampleIfMissing(at: JSONHostStore.defaultURL)
-                            NSWorkspace.shared.open(JSONHostStore.defaultURL)
+                            JSONHostStore.createSampleIfMissing(at: state.jsonURL)
+                            NSWorkspace.shared.open(state.jsonURL)
                         }
                         Button("Show in Finder") {
-                            NSWorkspace.shared.activateFileViewerSelecting([JSONHostStore.defaultURL])
+                            NSWorkspace.shared.activateFileViewerSelecting([state.jsonURL])
                         }
                         Spacer()
                         Button("Reload") {
                             state.reload()
                         }
                     }
+                    Text("The last 3 versions are kept as backups next to the file (e.g. servers.backup-…json) on every change — whether edited manually or imported.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
                 }
 
                 if let error = state.lastError {
@@ -116,6 +133,19 @@ struct SettingsView: View {
         .fixedSize(horizontal: false, vertical: true)
         .sheet(item: $parseResult) { result in
             ImportView(result: result, state: state)
+        }
+    }
+
+    private func chooseJSONLocation() {
+        let panel = NSOpenPanel()
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canCreateDirectories = true
+        panel.allowedContentTypes = [.json]
+        panel.message = "Choose a servers JSON file"
+        panel.prompt = "Use"
+        if panel.runModal() == .OK, let url = panel.url {
+            state.setJSONPath(url)
         }
     }
 

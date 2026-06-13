@@ -136,7 +136,7 @@ struct ImportView: View {
 
     private func runImport() {
         let incoming = previewFile
-        let url = JSONHostStore.defaultURL
+        let url = state.jsonURL
         let fileToWrite: JSONHostStore.File
         switch mode {
         case .replace:
