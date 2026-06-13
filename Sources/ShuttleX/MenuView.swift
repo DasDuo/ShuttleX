@@ -44,9 +44,9 @@ struct MenuView: View {
 
     private var header: some View {
         HStack(spacing: 8) {
-            Image(systemName: "terminal.fill")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.white)
+            ShuttleShape()
+                .fill(.white)
+                .frame(width: 13, height: 13)
                 .frame(width: 24, height: 24)
                 .background(
                     LinearGradient(colors: [.blue, .indigo], startPoint: .top, endPoint: .bottom),

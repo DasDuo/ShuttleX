@@ -9,7 +9,7 @@ struct ShuttleXApp: App {
             MenuView()
                 .environment(state)
         } label: {
-            Image(systemName: "terminal.fill")
+            Image(nsImage: MenuBarIcon.image)
         }
         .menuBarExtraStyle(.window)
 
