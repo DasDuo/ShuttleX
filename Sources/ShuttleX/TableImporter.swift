@@ -61,8 +61,13 @@ enum TableImporter {
             } else {
                 throw ImportError.unreadable("Datei konnte nicht gelesen werden.")
             }
-            let delimiter: Character = ext == "tsv" ? "\t" : detectDelimiter(text)
-            grid = parseDelimited(text, delimiter: delimiter)
+            // Zeilenenden vereinheitlichen: Swift behandelt "\r\n" sonst als ein
+            // einzelnes Character-Grapheme, wodurch keine Zeile umbrechen würde.
+            let normalized = text
+                .replacingOccurrences(of: "\r\n", with: "\n")
+                .replacingOccurrences(of: "\r", with: "\n")
+            let delimiter: Character = ext == "tsv" ? "\t" : detectDelimiter(normalized)
+            grid = parseDelimited(normalized, delimiter: delimiter)
         case "xlsx":
             grid = try readXLSX(url)
         default:
