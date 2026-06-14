@@ -2,10 +2,10 @@
 
 ## Supported Versions
 
-| Version | Supported |
-|---------|-----------|
-| 1.3.x   | ✅        |
-| < 1.3   | ❌        |
+ShuttleX is a fast-moving, single-developer project, so only the **latest
+release** is supported. Security fixes ship in a new release rather than being
+backported to older versions — please update to the newest version (see
+[Releases](https://github.com/DasDuo/ShuttleX/releases)) before reporting an issue.
 
 ## Reporting a Vulnerability
 
