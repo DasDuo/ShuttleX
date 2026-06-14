@@ -2,6 +2,10 @@
 
 A modern SSH launcher for the macOS menu bar — inspired by [Shuttle](https://github.com/fitztrev/shuttle), rebuilt with SwiftUI (`MenuBarExtra`, `@Observable`). Pure **arm64** binary for Apple Silicon, not a universal app.
 
+<p align="center">
+  <img src="docs/screenshots/menu.png" alt="ShuttleX menu bar dropdown with searchable, collapsible server groups" width="360">
+</p>
+
 ## Features
 
 - Lives entirely in the menu bar (no Dock icon); a modern dropdown panel with a search field, hover effects, and **collapsible groups** (collapsed by default, click to expand; matches expand automatically while searching)
