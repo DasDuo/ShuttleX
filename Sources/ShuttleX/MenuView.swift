@@ -10,16 +10,7 @@ struct MenuView: View {
     @FocusState private var searchFocused: Bool
 
     private var filteredGroups: [HostGroup] {
-        guard !query.isEmpty else { return state.groups }
-        let needle = query.lowercased()
-        return state.groups.compactMap { group in
-            let hosts = group.hosts.filter {
-                $0.name.lowercased().contains(needle)
-                    || ($0.detail?.lowercased().contains(needle) ?? false)
-                    || $0.command.lowercased().contains(needle)
-            }
-            return hosts.isEmpty ? nil : HostGroup(name: group.name, hosts: hosts)
-        }
+        HostFiltering.filter(state.groups, query: query)
     }
 
     var body: some View {

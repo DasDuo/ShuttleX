@@ -108,6 +108,35 @@ private func makeTempDir() -> URL {
     #expect(groups.first?.hosts.first?.command == "ssh 'root@1.2.3.4; touch /tmp/x'")
 }
 
+// MARK: - Search filtering
+
+@Test func searchMatchesGroupNameOrHost() {
+    let groups = [
+        HostGroup(name: "Prod · web", hosts: [
+            SSHHost(name: "alpha", detail: "root@10.0.0.1", command: "ssh '10.0.0.1'"),
+            SSHHost(name: "beta", detail: "root@10.0.0.2", command: "ssh '10.0.0.2'"),
+        ]),
+        HostGroup(name: "Prod · db", hosts: [
+            SSHHost(name: "web-db", detail: "root@10.0.0.3", command: "ssh '10.0.0.3'"),
+            SSHHost(name: "cache", detail: "root@10.0.0.4", command: "ssh '10.0.0.4'"),
+        ]),
+    ]
+
+    // "web" matches the group "Prod · web" (whole group) and the host "web-db" in the db group.
+    let result = HostFiltering.filter(groups, query: "web")
+    #expect(result.count == 2)
+    #expect(result.first { $0.name == "Prod · web" }?.hosts.count == 2)
+    #expect(result.first { $0.name == "Prod · db" }?.hosts.count == 1)
+
+    // Empty query returns everything unchanged.
+    #expect(HostFiltering.filter(groups, query: "  ").count == 2)
+
+    // A host-only match keeps just that host.
+    let alpha = HostFiltering.filter(groups, query: "alpha")
+    #expect(alpha.count == 1)
+    #expect(alpha.first?.hosts.count == 1)
+}
+
 // MARK: - JSON merge
 
 @Test func mergeUpdatesMatchingAndAppendsNew() {
