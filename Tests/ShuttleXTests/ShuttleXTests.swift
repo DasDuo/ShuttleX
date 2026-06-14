@@ -137,6 +137,51 @@ private func makeTempDir() -> URL {
     #expect(alpha.first?.hosts.count == 1)
 }
 
+// MARK: - Host field validation
+
+@Test func hostValidationRejectsShellMetacharacters() {
+    #expect(HostValidation.isSafe("web01.prod.example.com"))
+    #expect(HostValidation.isSafe("10.0.0.1"))
+    #expect(HostValidation.isSafe("deploy"))
+    #expect(!HostValidation.isSafe("1.2.3.4; rm -rf ~"))
+    #expect(!HostValidation.isSafe("a b"))
+    #expect(!HostValidation.isSafe("$(reboot)"))
+}
+
+// MARK: - Server editing (add / edit / delete)
+
+@Test func serverEditingUpsertAndDelete() {
+    var file = JSONHostStore.File(
+        groups: [.init(name: "A", hosts: [.init(name: "h1", host: "old", user: nil, port: nil, command: nil)])],
+        hosts: nil
+    )
+
+    // Add a new host to a new group.
+    file = ServerEditing.upsert(file, group: "B",
+                                entry: .init(name: "h2", host: "x", user: nil, port: nil, command: nil),
+                                replacing: nil)
+    #expect(file.groups?.count == 2)
+
+    // Edit h1: rename, change host, and move it from group A to B.
+    file = ServerEditing.upsert(file, group: "B",
+                                entry: .init(name: "h1b", host: "new", user: nil, port: nil, command: nil),
+                                replacing: (group: "A", name: "h1"))
+    #expect(file.groups?.contains { $0.name == "A" } == false) // emptied → removed
+    let groupB = file.groups?.first { $0.name == "B" }
+    #expect(groupB?.hosts.count == 2)
+    #expect(groupB?.hosts.contains { $0.name == "h1b" && $0.host == "new" } == true)
+
+    // Empty group name falls back to "Servers".
+    file = ServerEditing.upsert(file, group: "   ",
+                                entry: .init(name: "loose", host: "y", user: nil, port: nil, command: nil),
+                                replacing: nil)
+    #expect(file.groups?.contains { $0.name == "Servers" } == true)
+
+    // Delete.
+    file = ServerEditing.delete(file, group: "B", name: "h2")
+    #expect(file.groups?.first { $0.name == "B" }?.hosts.count == 1)
+}
+
 // MARK: - Launch mode resolution
 
 @Test func launchModeFallsBackToWindowWhenNotRunning() {

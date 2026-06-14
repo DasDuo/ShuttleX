@@ -8,6 +8,7 @@ struct SettingsView: View {
     @State private var loginItemError: String?
     @State private var parseResult: TableImporter.ParseResult?
     @State private var importError: String?
+    @State private var showEditor = false
 
     var body: some View {
         @Bindable var state = state
@@ -65,6 +66,11 @@ struct SettingsView: View {
                             .textSelection(.enabled)
                     }
                     LabeledContent("Hosts found", value: "\(state.hostCount)")
+                    HStack {
+                        Button("Add / edit servers…") { showEditor = true }
+                            .buttonStyle(.borderedProminent)
+                        Spacer()
+                    }
                     HStack {
                         Button("Choose…") { chooseJSONLocation() }
                         if state.usingCustomJSONPath {
@@ -133,6 +139,9 @@ struct SettingsView: View {
         .fixedSize(horizontal: false, vertical: true)
         .sheet(item: $parseResult) { result in
             ImportView(result: result, state: state)
+        }
+        .sheet(isPresented: $showEditor) {
+            ServerEditorView(state: state)
         }
     }
 

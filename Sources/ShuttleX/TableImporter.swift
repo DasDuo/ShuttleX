@@ -47,22 +47,9 @@ enum TableImporter {
         var skipped: Int = 0
     }
 
-    /// Characters that must never reach a connection target — whitespace, control
-    /// characters and shell metacharacters. Hostnames, IPs and usernames don't use them.
-    private static let unsafeCharacters: CharacterSet = {
-        var set = CharacterSet.whitespacesAndNewlines
-        set.formUnion(.controlCharacters)
-        set.formUnion(CharacterSet(charactersIn: ";|&$`<>(){}[]!*?\\\"'#~,"))
-        return set
-    }()
-
-    private static func isSafe(_ value: String) -> Bool {
-        value.rangeOfCharacter(from: unsafeCharacters) == nil
-    }
-
     /// A row is safe only if every field used in the SSH command is free of unsafe characters.
     private static func isSafeRow(_ row: Row) -> Bool {
-        isSafe(row.dns) && isSafe(row.ip) && isSafe(row.user)
+        HostValidation.isSafe(row.dns) && HostValidation.isSafe(row.ip) && HostValidation.isSafe(row.user)
     }
 
     // MARK: - Reading

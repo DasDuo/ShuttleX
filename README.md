@@ -1,6 +1,6 @@
 # ShuttleX
 
-A modern SSH launcher for the macOS menu bar — inspired by [Shuttle](https://github.com/fitztrev/shuttle), rebuilt with SwiftUI (`MenuBarExtra`, `@Observable`). Pure **arm64** binary for Apple Silicon, not a universal app.
+A modern SSH launcher for the macOS menu bar — inspired by the original [SSHMenu](https://sshmenu.sourceforge.net) and by [Shuttle](https://github.com/fitztrev/shuttle), rebuilt with SwiftUI (`MenuBarExtra`, `@Observable`). Pure **arm64** binary for Apple Silicon, not a universal app.
 
 <p align="center">
   <img src="docs/screenshots/menu.png" alt="ShuttleX menu bar dropdown with searchable, collapsible server groups" width="340" valign="top">
@@ -14,6 +14,7 @@ A modern SSH launcher for the macOS menu bar — inspired by [Shuttle](https://g
 - **Switchable server source** (Settings → Server source):
   - `~/.ssh/config` — hosts are read directly (including `Include` directives; wildcard hosts like `*` are ignored)
   - JSON file at `~/.config/shuttlex/servers.json` (created with sample entries the first time you switch to it). The path is configurable in Settings, and the last 3 versions are kept as backups next to the file (`servers.backup-…json`) on every change — manual or imported
+- **Add, edit and delete servers in-app** (JSON source) — manage your connection list from a GUI in Settings → "Add / edit servers…", no hand-editing of JSON required
 - **Choose your terminal app**: Terminal, iTerm2, Ghostty, Warp, Alacritty, kitty, WezTerm — only apps that are actually installed are offered (also switchable right in the dropdown footer)
 - **Choose how it opens** (dropdown footer or Settings): new window, new tab, or split pane — depending on what the terminal app supports:
   - iTerm2: window, tab, split right, split down
@@ -118,6 +119,15 @@ Distributing without this hurdle would require a **Developer ID signature + nota
 - Splits open in the currently active iTerm2 window; with no window open, a new one is created instead (same behavior for tabs).
 - Ghostty, Alacritty, kitty, and WezTerm are launched via command-line arguments; Warp via a launch configuration (`warp://launch/…`).
 - The app is ad-hoc signed (local build). Distributing to other Macs would require a Developer ID signature + notarization.
+
+## Credits & inspiration
+
+ShuttleX stands on the shoulders of two projects:
+
+- [**SSHMenu**](https://sshmenu.sourceforge.net) — the original GNOME panel applet that kept all your SSH connections one click away: grouped, opening a terminal, with your choice of terminal. ShuttleX is essentially that idea, modernized for the macOS menu bar.
+- [**Shuttle**](https://github.com/fitztrev/shuttle) — the macOS take that popularized the menu-bar + `~/.ssh/config` approach.
+
+The design choices follow from this lineage: a menu-bar dropdown (not a windowed app), `~/.ssh/config` as a first-class source, grouped one-click connections, and a configurable terminal — plus modern additions like search, collapsible groups, table import, version backups, and in-app server management.
 
 ## License
 
