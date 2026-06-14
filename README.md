@@ -129,6 +129,8 @@ ShuttleX stands on the shoulders of two projects:
 
 The design choices follow from this lineage: a menu-bar dropdown (not a windowed app), `~/.ssh/config` as a first-class source, grouped one-click connections, and a configurable terminal — plus modern additions like search, collapsible groups, table import, version backups, and in-app server management.
 
+The app icon is based on a space-shuttle vector from [Pixabay](https://pixabay.com/vectors/space-shuttle-nasa-rocket-spaceflight-294104/) (Pixabay Content License), recolored and composited.
+
 ## License
 
 [MIT](LICENSE)
