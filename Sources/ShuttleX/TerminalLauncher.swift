@@ -39,9 +39,9 @@ enum TerminalLauncher {
 
         switch terminal {
         case .terminal:
-            try runAppleScript(terminalScript(host.command, mode: mode), app: terminal.displayName)
+            try runAppleScript(terminalScript(host.command, mode: mode, isRunning: isRunning), app: terminal.displayName)
         case .iterm2:
-            try runAppleScript(itermScript(host.command, mode: mode), app: terminal.displayName)
+            try runAppleScript(itermScript(host.command, mode: mode, isRunning: isRunning), app: terminal.displayName)
         case .warp:
             try launchWarp(host)
         case .ghostty:
@@ -59,8 +59,26 @@ enum TerminalLauncher {
 
     /// Terminal.app: windows via `do script`, tabs only via a Cmd+T keystroke
     /// (System Events, requires the Accessibility permission).
-    private static func terminalScript(_ command: String, mode: LaunchMode) -> String {
+    private static func terminalScript(_ command: String, mode: LaunchMode, isRunning: Bool) -> String {
         let escaped = appleScriptEscaped(command)
+        // Fresh launch: reuse the window Terminal opens on startup instead of
+        // adding a second one.
+        if !isRunning {
+            return """
+            tell application id "com.apple.Terminal"
+                activate
+                repeat 30 times
+                    if (count of windows) > 0 then exit repeat
+                    delay 0.05
+                end repeat
+                if (count of windows) is 0 then
+                    do script "\(escaped)"
+                else
+                    do script "\(escaped)" in selected tab of front window
+                end if
+            end tell
+            """
+        }
         switch mode {
         case .newTab:
             return """
@@ -85,7 +103,7 @@ enum TerminalLauncher {
         }
     }
 
-    private static func itermScript(_ command: String, mode: LaunchMode) -> String {
+    private static func itermScript(_ command: String, mode: LaunchMode, isRunning: Bool) -> String {
         let escaped = appleScriptEscaped(command)
         let newWindowBody = """
                 set newWindow to (create window with default profile)
@@ -93,6 +111,26 @@ enum TerminalLauncher {
                     write text "\(escaped)"
                 end tell
         """
+        // Fresh launch: iTerm may open a window on startup. Reuse it (or create
+        // one if it doesn't) so we don't end up with two windows.
+        if !isRunning {
+            return """
+            tell application id "com.googlecode.iterm2"
+                activate
+                repeat 30 times
+                    if (count of windows) > 0 then exit repeat
+                    delay 0.05
+                end repeat
+                if (count of windows) is 0 then
+            \(newWindowBody)
+                else
+                    tell current session of current window
+                        write text "\(escaped)"
+                    end tell
+                end if
+            end tell
+            """
+        }
         switch mode {
         case .newWindow:
             return """
