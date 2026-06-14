@@ -179,11 +179,14 @@ enum TableImporter {
         mapping.ip = find(["ip", "ipv4", "adresse", "address"])
         mapping.cluster = find(["cluster"])
         mapping.stage = find(["stage", "umgebung", "environment", "env"])
-        // Only treat as a header from two matches on – a single coincidental
-        // value like "clusterA" shouldn't swallow a whole data row.
-        let matches = [mapping.user, mapping.dns, mapping.ip,
-                       mapping.cluster, mapping.stage].compactMap { $0 }.count
-        mapping.hasHeader = matches >= 2
+        // Decide "is this a header row" only from cells that look like labels
+        // (no digits) — so data values such as "host01" or "10.0.0.9" that merely
+        // contain a keyword don't get a data row mistaken for a header.
+        let headerLike = [mapping.user, mapping.dns, mapping.ip, mapping.cluster, mapping.stage]
+            .compactMap { $0 }
+            .filter { normalized[$0].rangeOfCharacter(from: .decimalDigits) == nil }
+            .count
+        mapping.hasHeader = headerLike >= 2
 
         // No recognizable header: fixed order as specified.
         if !mapping.hasHeader {

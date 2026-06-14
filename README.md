@@ -37,6 +37,12 @@ For "launch at login" to work reliably, copy the app to `/Applications` after bu
 cp -R build/ShuttleX.app /Applications/
 ```
 
+Run the test suite (CSV/XLSX parsing, JSON merge, backup rotation, shell-quoting / import safety) with:
+
+```sh
+swift test
+```
+
 ## Table import (CSV / Excel / Google Sheets)
 
 ShuttleX can generate the JSON directly from a spreadsheet — handy when you manage many servers. Settings → **Table import → "Import table …"**.

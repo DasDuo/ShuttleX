@@ -1,4 +1,4 @@
-// swift-tools-version:5.9
+// swift-tools-version:6.0
 import PackageDescription
 
 let package = Package(
@@ -8,6 +8,12 @@ let package = Package(
         .executableTarget(
             name: "ShuttleX",
             path: "Sources/ShuttleX"
-        )
-    ]
+        ),
+        .testTarget(
+            name: "ShuttleXTests",
+            dependencies: ["ShuttleX"],
+            path: "Tests/ShuttleXTests"
+        ),
+    ],
+    swiftLanguageModes: [.v5]
 )

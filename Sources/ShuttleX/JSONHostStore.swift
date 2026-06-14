@@ -92,10 +92,19 @@ enum JSONHostStore {
             destination = directory.appendingPathComponent("\(base).backup-\(stamp)-\(counter).\(ext)")
             counter += 1
         }
-        try? data.write(to: destination, options: .atomic)
+        do {
+            try data.write(to: destination, options: .atomic)
+        } catch {
+            NSLog("ShuttleX: backup write failed at \(destination.path): \(error.localizedDescription)")
+            return
+        }
 
         for old in backups(in: directory, base: base, ext: ext).dropFirst(keep) {
-            try? FileManager.default.removeItem(at: old)
+            do {
+                try FileManager.default.removeItem(at: old)
+            } catch {
+                NSLog("ShuttleX: backup prune failed for \(old.lastPathComponent): \(error.localizedDescription)")
+            }
         }
     }
 

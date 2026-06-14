@@ -4,6 +4,7 @@ import Foundation
 enum LaunchError: LocalizedError {
     case notInstalled(String)
     case scriptFailed(String)
+    case permissionDenied(String)
     case warpFailed
 
     var errorDescription: String? {
@@ -12,6 +13,8 @@ enum LaunchError: LocalizedError {
             return "\(name) is not installed."
         case .scriptFailed(let message):
             return "AppleScript error: \(message)"
+        case .permissionDenied(let app):
+            return "ShuttleX isn't allowed to control \(app). Allow it under System Settings → Privacy & Security → Automation (and Accessibility for Terminal tabs), then try again."
         case .warpFailed:
             return "Could not create the Warp launch configuration."
         }
@@ -27,9 +30,9 @@ enum TerminalLauncher {
 
         switch terminal {
         case .terminal:
-            try runAppleScript(terminalScript(host.command, mode: mode))
+            try runAppleScript(terminalScript(host.command, mode: mode), app: terminal.displayName)
         case .iterm2:
-            try runAppleScript(itermScript(host.command, mode: mode))
+            try runAppleScript(itermScript(host.command, mode: mode), app: terminal.displayName)
         case .warp:
             try launchWarp(host)
         case .ghostty:
@@ -52,7 +55,7 @@ enum TerminalLauncher {
         switch mode {
         case .newTab:
             return """
-            tell application "Terminal"
+            tell application id "com.apple.Terminal"
                 activate
                 if (count of windows) is 0 then
                     do script "\(escaped)"
@@ -65,7 +68,7 @@ enum TerminalLauncher {
             """
         default:
             return """
-            tell application "Terminal"
+            tell application id "com.apple.Terminal"
                 activate
                 do script "\(escaped)"
             end tell
@@ -84,14 +87,14 @@ enum TerminalLauncher {
         switch mode {
         case .newWindow:
             return """
-            tell application "iTerm"
+            tell application id "com.googlecode.iterm2"
                 activate
             \(newWindowBody)
             end tell
             """
         case .newTab:
             return """
-            tell application "iTerm"
+            tell application id "com.googlecode.iterm2"
                 activate
                 if (count of windows) is 0 then
             \(newWindowBody)
@@ -108,7 +111,7 @@ enum TerminalLauncher {
         case .splitRight, .splitDown:
             let direction = mode == .splitRight ? "vertically" : "horizontally"
             return """
-            tell application "iTerm"
+            tell application id "com.googlecode.iterm2"
                 activate
                 if (count of windows) is 0 then
             \(newWindowBody)
@@ -127,15 +130,26 @@ enum TerminalLauncher {
 
     // MARK: - AppleScript (Terminal.app, iTerm2)
 
-    private static func runAppleScript(_ source: String) throws {
+    private static func runAppleScript(_ source: String, app: String) throws {
         var errorInfo: NSDictionary?
         guard let script = NSAppleScript(source: source) else {
             throw LaunchError.scriptFailed("Could not create the script.")
         }
         script.executeAndReturnError(&errorInfo)
-        if let errorInfo, let message = errorInfo[NSAppleScript.errorMessage] as? String {
-            throw LaunchError.scriptFailed(message)
+        guard let errorInfo else { return }
+
+        let number = (errorInfo[NSAppleScript.errorNumber] as? Int) ?? 0
+        let message = (errorInfo[NSAppleScript.errorMessage] as? String) ?? "Unknown AppleScript error."
+        let lowered = message.lowercased()
+        // -1743 = not authorized to send Apple events (Automation); the keystroke
+        // path (Terminal tabs) fails with an "assistive access" / "not allowed" message.
+        if number == -1743
+            || lowered.contains("not authoriz")
+            || lowered.contains("not allowed")
+            || lowered.contains("assistive access") {
+            throw LaunchError.permissionDenied(app)
         }
+        throw LaunchError.scriptFailed(message)
     }
 
     private static func appleScriptEscaped(_ text: String) -> String {
