@@ -137,6 +137,19 @@ private func makeTempDir() -> URL {
     #expect(alpha.first?.hosts.count == 1)
 }
 
+// MARK: - Launch mode resolution
+
+@Test func launchModeFallsBackToWindowWhenNotRunning() {
+    // Not running → always a new window, even when tab/split is requested.
+    #expect(TerminalLauncher.effectiveMode(requested: .splitRight, supported: LaunchMode.allCases, isRunning: false) == .newWindow)
+    #expect(TerminalLauncher.effectiveMode(requested: .newTab, supported: [.newWindow, .newTab], isRunning: false) == .newWindow)
+    // Running → the requested mode is honored when supported.
+    #expect(TerminalLauncher.effectiveMode(requested: .splitRight, supported: LaunchMode.allCases, isRunning: true) == .splitRight)
+    #expect(TerminalLauncher.effectiveMode(requested: .newTab, supported: [.newWindow, .newTab], isRunning: true) == .newTab)
+    // Running but the requested mode isn't supported → new window.
+    #expect(TerminalLauncher.effectiveMode(requested: .splitRight, supported: [.newWindow], isRunning: true) == .newWindow)
+}
+
 // MARK: - JSON merge
 
 @Test func mergeUpdatesMatchingAndAppendsNew() {

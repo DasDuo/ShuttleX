@@ -19,6 +19,7 @@ A modern SSH launcher for the macOS menu bar — inspired by [Shuttle](https://g
   - iTerm2: window, tab, split right, split down
   - Terminal.app: window, tab (tab needs the Accessibility permission once, see Notes)
   - Ghostty, Warp, Alacritty, kitty, WezTerm: new windows only (can't be steered otherwise from outside; unsupported modes fall back to "new window" automatically)
+  - When the terminal isn't running yet, a new window is always opened — tab/split only apply once a window exists
 - Search + Enter connects straight to the first match
 - Optional: launch at login (Settings → General)
 

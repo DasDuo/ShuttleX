@@ -22,11 +22,20 @@ enum LaunchError: LocalizedError {
 }
 
 enum TerminalLauncher {
-    static func launch(_ host: SSHHost, in terminal: TerminalApp, mode: LaunchMode) throws {
+    /// Resolves the mode to actually use: a new window when the terminal isn't
+    /// running yet (tab/split only make sense with an existing window), otherwise
+    /// the requested mode if the terminal supports it.
+    static func effectiveMode(requested: LaunchMode, supported: [LaunchMode], isRunning: Bool) -> LaunchMode {
+        guard isRunning else { return .newWindow }
+        return supported.contains(requested) ? requested : .newWindow
+    }
+
+    static func launch(_ host: SSHHost, in terminal: TerminalApp, mode requestedMode: LaunchMode) throws {
         guard let appURL = terminal.appURL else {
             throw LaunchError.notInstalled(terminal.displayName)
         }
-        let mode = terminal.supportedModes.contains(mode) ? mode : .newWindow
+        let isRunning = NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == terminal.rawValue }
+        let mode = effectiveMode(requested: requestedMode, supported: terminal.supportedModes, isRunning: isRunning)
 
         switch terminal {
         case .terminal:
