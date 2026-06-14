@@ -52,6 +52,7 @@ Expected columns (order doesn't matter; the header row is detected automatically
 - **Name**: the "Server DNS" (or "Name") column is used verbatim as the display name in the menu — it doesn't have to be a real DNS. You can pick the IP as the connection target independently.
 - **Grouping**: one group is created per combination as `Stage · Cluster` (e.g. "Prod · web") — keeping the menu tidy.
 - **Mode**: *Merge* updates entries with the same name and adds new ones (manually maintained servers are preserved); *Replace* overwrites the JSON file completely.
+- **Safety**: rows whose server fields contain unsafe characters (spaces or shell symbols) are skipped, and all connection targets are shell-quoted when the `ssh` command is built — so importing an untrusted spreadsheet can't inject shell commands.
 
 A sample file lives at [`examples/servers-sample.csv`](examples/servers-sample.csv).
 

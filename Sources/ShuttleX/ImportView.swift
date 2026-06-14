@@ -24,6 +24,12 @@ struct ImportView: View {
                     LabeledContent("File", value: result.fileName)
                     LabeledContent("Servers", value: "\(result.rows.count)")
                     LabeledContent("Groups", value: "\(groupCount)")
+                    if result.skipped > 0 {
+                        Label("\(result.skipped) row(s) skipped — unsafe characters in server fields.",
+                              systemImage: "exclamationmark.shield.fill")
+                            .font(.callout)
+                            .foregroundStyle(.orange)
+                    }
                     if !result.mapping.hasHeader {
                         Text("No header detected – columns read in fixed order: User, Server DNS, Server IP, Cluster, Stage.")
                             .font(.callout)

@@ -44,7 +44,8 @@ enum JSONHostStore {
         let host = entry.host ?? entry.name
         var target = host
         if let user = entry.user { target = "\(user)@\(host)" }
-        var command = "ssh \(target)"
+        // Shell-quote the target so host/user values can't inject shell commands.
+        var command = "ssh \(Shell.quote(target))"
         if let port = entry.port, port != 22 { command += " -p \(port)" }
         return SSHHost(name: entry.name, detail: target, command: command)
     }

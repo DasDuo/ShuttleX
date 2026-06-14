@@ -44,6 +44,25 @@ enum TableImporter {
         var rows: [Row]
         var mapping: ColumnMapping
         var fileName: String
+        var skipped: Int = 0
+    }
+
+    /// Characters that must never reach a connection target — whitespace, control
+    /// characters and shell metacharacters. Hostnames, IPs and usernames don't use them.
+    private static let unsafeCharacters: CharacterSet = {
+        var set = CharacterSet.whitespacesAndNewlines
+        set.formUnion(.controlCharacters)
+        set.formUnion(CharacterSet(charactersIn: ";|&$`<>(){}[]!*?\\\"'#~,"))
+        return set
+    }()
+
+    private static func isSafe(_ value: String) -> Bool {
+        value.rangeOfCharacter(from: unsafeCharacters) == nil
+    }
+
+    /// A row is safe only if every field used in the SSH command is free of unsafe characters.
+    private static func isSafeRow(_ row: Row) -> Bool {
+        isSafe(row.dns) && isSafe(row.ip) && isSafe(row.user)
     }
 
     // MARK: - Reading
@@ -76,6 +95,7 @@ enum TableImporter {
 
         let mapping = detectColumns(in: grid)
         let dataRows = mapping.hasHeader ? Array(grid.dropFirst()) : grid
+        var skipped = 0
         let rows = dataRows.compactMap { cols -> Row? in
             func value(_ index: Int?) -> String {
                 guard let index, index >= 0, index < cols.count else { return "" }
@@ -84,10 +104,17 @@ enum TableImporter {
             let row = Row(user: value(mapping.user), dns: value(mapping.dns),
                           ip: value(mapping.ip), cluster: value(mapping.cluster),
                           stage: value(mapping.stage))
-            return row.hasTarget ? row : nil
+            guard row.hasTarget else { return nil }
+            // Drop rows whose connection fields contain unsafe characters.
+            guard isSafeRow(row) else { skipped += 1; return nil }
+            return row
         }
-        guard !rows.isEmpty else { throw ImportError.noRows }
-        return ParseResult(rows: rows, mapping: mapping, fileName: url.lastPathComponent)
+        if rows.isEmpty {
+            throw skipped > 0
+                ? ImportError.unreadable("All rows were skipped because their server fields contain unsafe characters (spaces or shell symbols).")
+                : ImportError.noRows
+        }
+        return ParseResult(rows: rows, mapping: mapping, fileName: url.lastPathComponent, skipped: skipped)
     }
 
     // MARK: - JSON construction

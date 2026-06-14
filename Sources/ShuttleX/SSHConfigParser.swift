@@ -61,7 +61,7 @@ enum SSHConfigParser {
         } else if let user = props["user"] {
             detail = "\(user)@\(alias)"
         }
-        return SSHHost(name: alias, detail: detail, command: "ssh \(alias)")
+        return SSHHost(name: alias, detail: detail, command: "ssh \(Shell.quote(alias))")
     }
 
     private static func isPattern(_ alias: String) -> Bool {
