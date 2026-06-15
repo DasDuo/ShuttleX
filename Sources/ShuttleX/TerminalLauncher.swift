@@ -87,8 +87,12 @@ enum TerminalLauncher {
                 if (count of windows) is 0 then
                     do script "\(escaped)"
                 else
+                    set tabsBefore to count of tabs of front window
                     tell application "System Events" to keystroke "t" using command down
-                    delay 0.3
+                    repeat 40 times
+                        if (count of tabs of front window) > tabsBefore then exit repeat
+                        delay 0.05
+                    end repeat
                     do script "\(escaped)" in selected tab of front window
                 end if
             end tell

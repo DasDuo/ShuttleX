@@ -182,6 +182,34 @@ private func makeTempDir() -> URL {
     #expect(file.groups?.first { $0.name == "B" }?.hosts.count == 1)
 }
 
+// MARK: - SSH config parsing
+
+@Test func sshConfigParsesHostsAndIgnoresWildcards() throws {
+    let dir = makeTempDir(); defer { try? FileManager.default.removeItem(at: dir) }
+    let cfg = dir.appendingPathComponent("config")
+    try "Host web\n  HostName web.example.com\n  User deploy\n\nHost *\n  ForwardAgent yes\n"
+        .write(to: cfg, atomically: true, encoding: .utf8)
+
+    let hosts = try SSHConfigParser.parse(at: cfg)
+    #expect(hosts.count == 1)
+    #expect(hosts.first?.name == "web")
+    #expect(hosts.first?.command == "ssh 'web'")
+}
+
+@Test func sshConfigMissingFileReturnsEmptyWithoutThrowing() throws {
+    let dir = makeTempDir(); defer { try? FileManager.default.removeItem(at: dir) }
+    #expect(try SSHConfigParser.parse(at: dir.appendingPathComponent("nope")).isEmpty)
+}
+
+@Test func sshConfigUnreadableFileThrows() throws {
+    let dir = makeTempDir(); defer { try? FileManager.default.removeItem(at: dir) }
+    let cfg = dir.appendingPathComponent("config")
+    try "Host x\n  HostName x\n".write(to: cfg, atomically: true, encoding: .utf8)
+    try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: cfg.path)
+    defer { try? FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: cfg.path) }
+    #expect(throws: (any Error).self) { try SSHConfigParser.parse(at: cfg) }
+}
+
 // MARK: - AppleScript escaping
 
 @Test func appleScriptEscapingHandlesQuotesBackslashesAndControlChars() {

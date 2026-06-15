@@ -74,10 +74,18 @@ final class AppState {
         lastError = nil
         switch source {
         case .sshConfig:
-            let hosts = SSHConfigParser.parse(at: Self.sshConfigURL)
-            groups = hosts.isEmpty ? [] : [HostGroup(name: "SSH config", hosts: hosts)]
-            if !FileManager.default.fileExists(atPath: Self.sshConfigURL.path) {
+            let url = Self.sshConfigURL
+            if !FileManager.default.fileExists(atPath: url.path) {
+                groups = []
                 lastError = "No ~/.ssh/config found."
+            } else {
+                do {
+                    let hosts = try SSHConfigParser.parse(at: url)
+                    groups = hosts.isEmpty ? [] : [HostGroup(name: "SSH config", hosts: hosts)]
+                } catch {
+                    groups = []
+                    lastError = "Could not read ~/.ssh/config — check file permissions. (\(error.localizedDescription))"
+                }
             }
         case .json:
             let url = jsonURL

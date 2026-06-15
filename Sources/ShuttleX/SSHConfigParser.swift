@@ -3,13 +3,17 @@ import Foundation
 /// Minimal parser for ~/.ssh/config: reads Host entries (without wildcards)
 /// and supports Include directives.
 enum SSHConfigParser {
-    static func parse(at url: URL) -> [SSHHost] {
-        parse(at: url, depth: 0)
+    /// Returns `[]` when the file simply doesn't exist (a normal, error-free state),
+    /// and **throws** only when the file exists but can't be read (permissions /
+    /// encoding) — so callers can tell "no config" apart from "unreadable config".
+    static func parse(at url: URL) throws -> [SSHHost] {
+        guard FileManager.default.fileExists(atPath: url.path) else { return [] }
+        let content = try String(contentsOf: url, encoding: .utf8)
+        return parse(content: content, source: url, depth: 0)
     }
 
-    private static func parse(at url: URL, depth: Int) -> [SSHHost] {
-        guard depth < 8,
-              let content = try? String(contentsOf: url, encoding: .utf8) else { return [] }
+    private static func parse(content: String, source url: URL, depth: Int) -> [SSHHost] {
+        guard depth < 8 else { return [] }
 
         var hosts: [SSHHost] = []
         var currentAliases: [String] = []
@@ -38,7 +42,11 @@ enum SSHConfigParser {
             case "include":
                 for pattern in value.split(separator: " ").map(String.init) {
                     for included in resolveInclude(pattern, relativeTo: url) {
-                        hosts.append(contentsOf: parse(at: included, depth: depth + 1))
+                        guard let includedContent = try? String(contentsOf: included, encoding: .utf8) else {
+                            NSLog("ShuttleX: could not read SSH config include \(included.path)")
+                            continue
+                        }
+                        hosts.append(contentsOf: parse(content: includedContent, source: included, depth: depth + 1))
                     }
                 }
             default:
