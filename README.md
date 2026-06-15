@@ -28,9 +28,14 @@ A modern SSH launcher for the macOS menu bar — inspired by the original [SSHMe
 
 ## Download
 
-Prebuilt binaries are on the [Releases](https://github.com/DasDuo/ShuttleX/releases) page — download `ShuttleX-<version>-arm64.zip`, unzip it, move it to `/Applications`, and approve it once (see "Distributing to another Mac").
+Grab the latest from the [Releases](https://github.com/DasDuo/ShuttleX/releases) page:
 
-Releases are produced automatically: push a tag (`git tag v1.3.0 && git push origin v1.3.0`) and GitHub Actions builds and publishes the zip.
+- **`ShuttleX-<version>-arm64.dmg`** — open it and drag **ShuttleX** onto the **Applications** shortcut (easiest).
+- `ShuttleX-<version>-arm64.zip` — unzip and move the app to `/Applications`.
+
+Either way, approve the app **once** on first launch — it's ad-hoc signed, not notarized, so Gatekeeper blocks it the first time (see [Distributing to another Mac](#distributing-to-another-mac)).
+
+Releases are produced automatically: push a tag (`git tag vX.Y.Z && git push origin vX.Y.Z`) and GitHub Actions builds and publishes the `.dmg` and `.zip`.
 
 ## Build & run
 
@@ -100,7 +105,7 @@ A sample file lives at [`examples/servers-sample.csv`](examples/servers-sample.c
 
 ## Distributing to another Mac
 
-Besides the app bundle, `./build.sh` also produces `ShuttleX-<version>-arm64.zip`. Copy the zip to the target Mac, unzip it, and move the app to `/Applications`.
+Besides the app bundle, `./build.sh` produces `ShuttleX-<version>-arm64.zip`, and `./make-dmg.sh` packages a drag-to-install `ShuttleX-<version>-arm64.dmg`. Copy either to the target Mac and install the app to `/Applications`.
 
 Because the app is only ad-hoc signed (not notarized), Gatekeeper blocks the first launch when the file arrives via the internet/AirDrop. There are two ways to approve it:
 
