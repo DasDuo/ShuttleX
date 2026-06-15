@@ -199,10 +199,13 @@ enum TerminalLauncher {
         throw LaunchError.scriptFailed(message)
     }
 
-    private static func appleScriptEscaped(_ text: String) -> String {
+    static func appleScriptEscaped(_ text: String) -> String {
         text
-            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\\", with: "\\\\") // must be first
             .replacingOccurrences(of: "\"", with: "\\\"")
+            .replacingOccurrences(of: "\r", with: "\\r")
+            .replacingOccurrences(of: "\n", with: "\\n")
+            .replacingOccurrences(of: "\t", with: "\\t")
     }
 
     // MARK: - CLI arguments (Ghostty, Alacritty, kitty, WezTerm)
@@ -250,7 +253,10 @@ enum TerminalLauncher {
 
     private static func yamlEscaped(_ text: String) -> String {
         text
-            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\\", with: "\\\\") // must be first
             .replacingOccurrences(of: "\"", with: "\\\"")
+            .replacingOccurrences(of: "\r", with: "\\r")
+            .replacingOccurrences(of: "\n", with: "\\n")
+            .replacingOccurrences(of: "\t", with: "\\t")
     }
 }

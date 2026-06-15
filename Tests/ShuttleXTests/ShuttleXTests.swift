@@ -182,6 +182,19 @@ private func makeTempDir() -> URL {
     #expect(file.groups?.first { $0.name == "B" }?.hosts.count == 1)
 }
 
+// MARK: - AppleScript escaping
+
+@Test func appleScriptEscapingHandlesQuotesBackslashesAndControlChars() {
+    #expect(TerminalLauncher.appleScriptEscaped("ssh 'user@host'") == "ssh 'user@host'")
+    #expect(TerminalLauncher.appleScriptEscaped("a\"b") == "a\\\"b")
+    #expect(TerminalLauncher.appleScriptEscaped("a\\b") == "a\\\\b")
+    #expect(TerminalLauncher.appleScriptEscaped("a\nb") == "a\\nb")
+    #expect(TerminalLauncher.appleScriptEscaped("a\tb") == "a\\tb")
+    #expect(TerminalLauncher.appleScriptEscaped("a\r\nb") == "a\\r\\nb")
+    // A backslash already present must not double-escape the control-char escapes.
+    #expect(TerminalLauncher.appleScriptEscaped("x\\\ny") == "x\\\\\\ny")
+}
+
 // MARK: - Launch mode resolution
 
 @Test func launchModeFallsBackToWindowWhenNotRunning() {
