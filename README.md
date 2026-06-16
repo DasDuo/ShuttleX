@@ -8,7 +8,7 @@ A modern SSH launcher for the macOS menu bar — inspired by the original [SSHMe
   <img src="docs/screenshots/settings.png" alt="ShuttleX settings: terminal, server source, table import" width="300" valign="top">
 </p>
 
-📖 Full documentation is in the [**Wiki**](https://github.com/DasDuo/ShuttleX/wiki).
+📖 Full documentation is in the [**Wiki**](https://github.com/DasDuo/ShuttleX/wiki) · version history in the [**Changelog**](CHANGELOG.md).
 
 ## Features
 
