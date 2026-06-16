@@ -12,6 +12,19 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v5
+      - name: Verify release metadata
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          PLIST_VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Resources/Info.plist)
+          if [ "$PLIST_VERSION" != "$VERSION" ]; then
+            echo "::error::Info.plist version ($PLIST_VERSION) does not match tag ($VERSION) — bump CFBundleShortVersionString."
+            exit 1
+          fi
+          if ! grep -qF "## [$VERSION]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no entry for $VERSION (expected a '## [$VERSION]' section) — add it before tagging."
+            exit 1
+          fi
+          echo "OK: version $VERSION matches Info.plist and has a CHANGELOG entry."
       - name: Build (arm64)
         run: ./build.sh
       - name: Package DMG
