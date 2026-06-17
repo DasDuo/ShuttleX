@@ -52,7 +52,7 @@ xattr -dr com.apple.quarantine /Applications/ShuttleX.app
 
 (or System Settings → Privacy & Security → "Open Anyway"). Step-by-step install and troubleshooting: the [**Installation**](https://github.com/DasDuo/ShuttleX/wiki/Installation) wiki page.
 
-Releases are produced automatically: push a tag (`git tag vX.Y.Z && git push origin vX.Y.Z`) and GitHub Actions builds and publishes the `.dmg` and `.zip`.
+Releases are produced automatically: push a tag (`git tag vX.Y.Z && git push origin vX.Y.Z`) and GitHub Actions builds and publishes the `.dmg` and `.zip`, and bumps the Homebrew cask. Maintainers: see [RELEASING.md](RELEASING.md).
 
 ## Build & run
 

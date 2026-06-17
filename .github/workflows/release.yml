@@ -43,3 +43,27 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" ShuttleX-*-arm64.dmg ShuttleX-*-arm64.zip --title "ShuttleX $GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md
+      - name: Update Homebrew cask
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          if [ -z "$HOMEBREW_TAP_TOKEN" ]; then
+            echo "HOMEBREW_TAP_TOKEN not set — skipping cask update. See RELEASING.md to enable it."
+            exit 0
+          fi
+          VERSION="${GITHUB_REF_NAME#v}"
+          SHA=$(shasum -a 256 "ShuttleX-${VERSION}-arm64.dmg" | awk '{print $1}')
+          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/DasDuo/homebrew-tap.git" tap
+          cd tap
+          sed -i '' -E "s/^  version \".*\"/  version \"${VERSION}\"/" Casks/shuttlex.rb
+          sed -i '' -E "s/^  sha256 \".*\"/  sha256 \"${SHA}\"/" Casks/shuttlex.rb
+          git add Casks/shuttlex.rb
+          if git diff --cached --quiet; then
+            echo "Cask already up to date for ${VERSION}."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "shuttlex ${VERSION}"
+          git push
+          echo "Updated homebrew-tap cask to ${VERSION} (${SHA})."
