@@ -5,8 +5,11 @@ struct MenuView: View {
     @Environment(\.openSettings) private var openSettings
 
     @State private var query = ""
-    @State private var listContentHeight: CGFloat = 0
     @State private var expandedGroups: Set<String> = []
+
+    /// Fixed height for the scrollable list area so the popover window never
+    /// resizes (and thus never gets repositioned by macOS) when groups expand.
+    private let listHeight: CGFloat = 320
     @FocusState private var searchFocused: Bool
 
     private var filteredGroups: [HostGroup] {
@@ -128,15 +131,10 @@ struct MenuView: View {
                 .padding(.horizontal, 6)
                 .padding(.bottom, 6)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .onGeometryChange(for: CGFloat.self) { proxy in
-                    proxy.size.height
-                } action: { height in
-                    listContentHeight = height
-                }
             }
-            // The MenuBarExtra window doesn't measure ScrollView content reliably,
-            // so the measured content height is set explicitly (capped at 380).
-            .frame(height: listContentHeight > 0 ? min(listContentHeight, 380) : nil)
+            // Fixed height → the window keeps a constant size, so expanding a
+            // group scrolls inside the list instead of resizing/moving the popover.
+            .frame(height: listHeight)
         }
     }
 
@@ -158,7 +156,7 @@ struct MenuView: View {
             }
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 28)
+        .frame(height: listHeight)
     }
 
     private func updateBanner(_ version: String) -> some View {

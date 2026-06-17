@@ -4,6 +4,11 @@ All notable changes to ShuttleX are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.1] - 2026-06-17
+
+### Fixed
+- The menu popover no longer resizes and jumps toward the menu bar when expanding or collapsing a group. The list area now has a fixed height and scrolls internally, so the panel stays in a stable position.
+
 ## [1.7.0] - 2026-06-17
 
 ### Added
@@ -122,6 +127,7 @@ All notable changes to ShuttleX are documented here. The format is based on
 ### Added
 - Initial release. A menu-bar SSH launcher built with SwiftUI (`MenuBarExtra`), pure arm64 for Apple Silicon. Hosts from `~/.ssh/config` or a JSON file; choose your terminal (Terminal, iTerm2, Ghostty, Warp, Alacritty, kitty, WezTerm); open in a new window, tab, or split.
 
+[1.7.1]: https://github.com/DasDuo/ShuttleX/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/DasDuo/ShuttleX/compare/v1.6.4...v1.7.0
 [1.6.4]: https://github.com/DasDuo/ShuttleX/compare/v1.6.3...v1.6.4
 [1.6.3]: https://github.com/DasDuo/ShuttleX/compare/v1.6.2...v1.6.3
