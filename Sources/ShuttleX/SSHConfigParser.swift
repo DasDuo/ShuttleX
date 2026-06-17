@@ -36,7 +36,13 @@ enum SSHConfigParser {
             switch key.lowercased() {
             case "host":
                 flush()
-                currentAliases = value.split(separator: " ").map(String.init)
+                // Stop at an inline "# comment" token so it doesn't become a bogus alias.
+                var aliases: [String] = []
+                for token in value.split(separator: " ").map(String.init) {
+                    if token.hasPrefix("#") { break }
+                    aliases.append(token)
+                }
+                currentAliases = aliases
             case "match":
                 flush()
             case "include":

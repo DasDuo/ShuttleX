@@ -4,6 +4,13 @@ All notable changes to ShuttleX are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.4] - 2026-06-17
+
+### Fixed
+- Launch failures for CLI terminals (Ghostty, Alacritty, kitty, WezTerm) now surface in the UI instead of only the system log.
+- Groups that share a name (e.g. from hand-edited JSON) are merged on load, so they no longer collide as identities or share expand/collapse state.
+- An inline `# comment` on a `Host` line in `~/.ssh/config` is no longer turned into bogus host aliases.
+
 ## [1.6.3] - 2026-06-15
 
 ### Changed
@@ -107,6 +114,7 @@ All notable changes to ShuttleX are documented here. The format is based on
 ### Added
 - Initial release. A menu-bar SSH launcher built with SwiftUI (`MenuBarExtra`), pure arm64 for Apple Silicon. Hosts from `~/.ssh/config` or a JSON file; choose your terminal (Terminal, iTerm2, Ghostty, Warp, Alacritty, kitty, WezTerm); open in a new window, tab, or split.
 
+[1.6.4]: https://github.com/DasDuo/ShuttleX/compare/v1.6.3...v1.6.4
 [1.6.3]: https://github.com/DasDuo/ShuttleX/compare/v1.6.2...v1.6.3
 [1.6.2]: https://github.com/DasDuo/ShuttleX/compare/v1.6.1...v1.6.2
 [1.6.1]: https://github.com/DasDuo/ShuttleX/compare/v1.6.0...v1.6.1

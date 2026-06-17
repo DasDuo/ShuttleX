@@ -27,14 +27,23 @@ enum JSONHostStore {
         let data = try Data(contentsOf: url)
         let file = try JSONDecoder().decode(File.self, from: data)
 
-        var groups: [HostGroup] = []
+        // Merge groups that share a name (e.g. from hand-edited JSON) so group
+        // names stay unique — otherwise they'd collide as SwiftUI identities and
+        // share expand/collapse state. First-seen order is preserved.
+        var order: [String] = []
+        var hostsByName: [String: [SSHHost]] = [:]
+        func add(_ name: String, _ hosts: [SSHHost]) {
+            if hostsByName[name] == nil { order.append(name) }
+            hostsByName[name, default: []].append(contentsOf: hosts)
+        }
+
         if let ungrouped = file.hosts, !ungrouped.isEmpty {
-            groups.append(HostGroup(name: "Servers", hosts: ungrouped.map(makeHost)))
+            add("Servers", ungrouped.map(makeHost))
         }
         for group in file.groups ?? [] {
-            groups.append(HostGroup(name: group.name, hosts: group.hosts.map(makeHost)))
+            add(group.name, group.hosts.map(makeHost))
         }
-        return groups
+        return order.map { HostGroup(name: $0, hosts: hostsByName[$0]!) }
     }
 
     private static func makeHost(_ entry: Entry) -> SSHHost {

@@ -210,6 +210,16 @@ private func makeTempDir() -> URL {
     #expect(throws: (any Error).self) { try SSHConfigParser.parse(at: cfg) }
 }
 
+@Test func sshConfigIgnoresInlineCommentInHostLine() throws {
+    let dir = makeTempDir(); defer { try? FileManager.default.removeItem(at: dir) }
+    let cfg = dir.appendingPathComponent("config")
+    try "Host web # production box\n  HostName web.example.com\n"
+        .write(to: cfg, atomically: true, encoding: .utf8)
+    let hosts = try SSHConfigParser.parse(at: cfg)
+    #expect(hosts.count == 1)
+    #expect(hosts.first?.name == "web")
+}
+
 // MARK: - AppleScript escaping
 
 @Test func appleScriptEscapingHandlesQuotesBackslashesAndControlChars() {
@@ -259,6 +269,24 @@ private func makeTempDir() -> URL {
     #expect(groupA?.hosts.count == 2)
     #expect(groupA?.hosts.first { $0.name == "h1" }?.host == "new")
     #expect(merged.groups?.contains { $0.name == "B" } == true)
+}
+
+// MARK: - JSON load
+
+@Test func jsonLoadMergesGroupsWithTheSameName() throws {
+    let dir = makeTempDir(); defer { try? FileManager.default.removeItem(at: dir) }
+    let url = dir.appendingPathComponent("servers.json")
+    try #"""
+    {"groups":[
+      {"name":"Prod","hosts":[{"name":"a","host":"a.example.com"}]},
+      {"name":"Prod","hosts":[{"name":"b","host":"b.example.com"}]}
+    ]}
+    """#.write(to: url, atomically: true, encoding: .utf8)
+
+    let groups = try JSONHostStore.load(from: url)
+    #expect(groups.count == 1)
+    #expect(groups.first?.name == "Prod")
+    #expect(groups.first?.hosts.count == 2)
 }
 
 // MARK: - Backup rotation

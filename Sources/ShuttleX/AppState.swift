@@ -103,9 +103,15 @@ final class AppState {
     }
 
     func connect(_ host: SSHHost) {
+        lastError = nil
+        let name = terminal.displayName
         do {
-            try TerminalLauncher.launch(host, in: terminal, mode: effectiveLaunchMode)
-            lastError = nil
+            // CLI terminals launch asynchronously; surface a late failure too.
+            try TerminalLauncher.launch(host, in: terminal, mode: effectiveLaunchMode) { [weak self] message in
+                DispatchQueue.main.async {
+                    self?.lastError = "Could not launch \(name): \(message)"
+                }
+            }
         } catch {
             lastError = error.localizedDescription
         }

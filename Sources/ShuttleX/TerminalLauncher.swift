@@ -30,7 +30,8 @@ enum TerminalLauncher {
         return supported.contains(requested) ? requested : .newWindow
     }
 
-    static func launch(_ host: SSHHost, in terminal: TerminalApp, mode requestedMode: LaunchMode) throws {
+    static func launch(_ host: SSHHost, in terminal: TerminalApp, mode requestedMode: LaunchMode,
+                       onAsyncError: ((String) -> Void)? = nil) throws {
         guard let appURL = terminal.appURL else {
             throw LaunchError.notInstalled(terminal.displayName)
         }
@@ -45,13 +46,13 @@ enum TerminalLauncher {
         case .warp:
             try launchWarp(host)
         case .ghostty:
-            openApp(at: appURL, arguments: ["-e", "/bin/sh", "-lc", host.command])
+            openApp(at: appURL, arguments: ["-e", "/bin/sh", "-lc", host.command], onError: onAsyncError)
         case .alacritty:
-            openApp(at: appURL, arguments: ["-e", "/bin/sh", "-lc", host.command])
+            openApp(at: appURL, arguments: ["-e", "/bin/sh", "-lc", host.command], onError: onAsyncError)
         case .kitty:
-            openApp(at: appURL, arguments: ["/bin/sh", "-lc", host.command])
+            openApp(at: appURL, arguments: ["/bin/sh", "-lc", host.command], onError: onAsyncError)
         case .wezterm:
-            openApp(at: appURL, arguments: ["start", "--", "/bin/sh", "-lc", host.command])
+            openApp(at: appURL, arguments: ["start", "--", "/bin/sh", "-lc", host.command], onError: onAsyncError)
         }
     }
 
@@ -214,14 +215,17 @@ enum TerminalLauncher {
 
     // MARK: - CLI arguments (Ghostty, Alacritty, kitty, WezTerm)
 
-    private static func openApp(at url: URL, arguments: [String]) {
+    private static func openApp(at url: URL, arguments: [String], onError: ((String) -> Void)? = nil) {
         let configuration = NSWorkspace.OpenConfiguration()
         configuration.arguments = arguments
         configuration.createsNewApplicationInstance = true
         configuration.activates = true
+        // openApplication is async, so a failure here can't be thrown from launch();
+        // report it back via onError so the UI can surface it.
         NSWorkspace.shared.openApplication(at: url, configuration: configuration) { _, error in
             if let error {
                 NSLog("ShuttleX: failed to launch terminal: \(error.localizedDescription)")
+                onError?(error.localizedDescription)
             }
         }
     }

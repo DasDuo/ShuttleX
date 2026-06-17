@@ -251,6 +251,9 @@ struct MenuView: View {
         }
     }
 
+    // Closes the MenuBarExtra popover. SwiftUI exposes no API to dismiss it, so we
+    // match it by its internal window class name. This is a known fragility — if a
+    // future macOS renames the class, the popover simply won't auto-close (cosmetic).
     private func dismissMenuWindow() {
         for window in NSApp.windows where window.className.contains("MenuBarExtra") {
             window.close()
