@@ -29,12 +29,28 @@ A modern SSH launcher for the macOS menu bar — inspired by the original [SSHMe
 
 ## Download
 
+### Homebrew
+
+```sh
+brew install --cask dasduo/tap/shuttlex
+```
+
+Updates then come via `brew upgrade --cask shuttlex`.
+
+### Direct download
+
 Grab the latest from the [Releases](https://github.com/DasDuo/ShuttleX/releases) page:
 
-- **`ShuttleX-<version>-arm64.dmg`** — open it and drag **ShuttleX** onto the **Applications** shortcut (easiest).
+- **`ShuttleX-<version>-arm64.dmg`** — open it and drag **ShuttleX** onto the **Applications** shortcut.
 - `ShuttleX-<version>-arm64.zip` — unzip and move the app to `/Applications`.
 
-Either way, approve the app **once** on first launch — it's ad-hoc signed, not notarized, so Gatekeeper blocks it the first time (see [Distributing to another Mac](#distributing-to-another-mac)). Step-by-step install and troubleshooting: the [**Installation**](https://github.com/DasDuo/ShuttleX/wiki/Installation) wiki page.
+However you install it, approve the app **once** on first launch — it's ad-hoc signed, not notarized, so Gatekeeper blocks it the first time:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/ShuttleX.app
+```
+
+(or System Settings → Privacy & Security → "Open Anyway"). Step-by-step install and troubleshooting: the [**Installation**](https://github.com/DasDuo/ShuttleX/wiki/Installation) wiki page.
 
 Releases are produced automatically: push a tag (`git tag vX.Y.Z && git push origin vX.Y.Z`) and GitHub Actions builds and publishes the `.dmg` and `.zip`.
 
