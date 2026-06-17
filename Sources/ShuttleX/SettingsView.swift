@@ -139,8 +139,9 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        .frame(width: 460)
-        .fixedSize(horizontal: false, vertical: true)
+        // Bounded height so the window fits smaller screens (e.g. 14") and the
+        // form scrolls instead of growing to its full content height.
+        .frame(width: 460, height: 600)
         .sheet(item: $parseResult) { result in
             ImportView(result: result, state: state)
         }
