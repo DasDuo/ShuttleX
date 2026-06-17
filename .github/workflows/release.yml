@@ -44,6 +44,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh release create "$GITHUB_REF_NAME" ShuttleX-*-arm64.dmg ShuttleX-*-arm64.zip --title "ShuttleX $GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md
       - name: Update Homebrew cask
+        continue-on-error: true   # release is already published; a cask hiccup shouldn't fail it
         env:
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
@@ -65,5 +66,9 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git commit -m "shuttlex ${VERSION}"
-          git push
-          echo "Updated homebrew-tap cask to ${VERSION} (${SHA})."
+          if git push; then
+            echo "Updated homebrew-tap cask to ${VERSION} (${SHA})."
+          else
+            echo "::warning::Homebrew cask push failed — check HOMEBREW_TAP_TOKEN has Contents:write on homebrew-tap, then bump manually per RELEASING.md."
+            exit 1
+          fi
