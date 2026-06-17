@@ -53,6 +53,21 @@ final class AppState {
     private(set) var groups: [HostGroup] = []
     var lastError: String?
 
+    /// Opt-in (default off): check GitHub for a newer release on launch.
+    var checkForUpdates: Bool {
+        didSet {
+            UserDefaults.standard.set(checkForUpdates, forKey: "checkForUpdates")
+            if checkForUpdates {
+                maybeCheckForUpdates(force: true)
+            } else {
+                updateAvailable = nil
+            }
+        }
+    }
+
+    /// The newer version available on GitHub (e.g. "1.7.0"), or nil.
+    var updateAvailable: String?
+
     var hostCount: Int {
         groups.reduce(0) { $0 + $1.hosts.count }
     }
@@ -67,7 +82,23 @@ final class AppState {
             terminal = .terminal
         }
         launchMode = defaults.string(forKey: "launchMode").flatMap(LaunchMode.init) ?? .newWindow
+        checkForUpdates = defaults.bool(forKey: "checkForUpdates") // default false
         reload()
+        maybeCheckForUpdates()
+    }
+
+    /// Checks GitHub for a newer release when enabled, throttled to once per 24 h
+    /// (unless `force`). Fails silently on network/API errors.
+    func maybeCheckForUpdates(force: Bool = false) {
+        guard checkForUpdates else { updateAvailable = nil; return }
+        let last = UserDefaults.standard.double(forKey: "lastUpdateCheck")
+        if !force, Date().timeIntervalSince1970 - last < 24 * 3600 { return }
+        UpdateCheck.fetchLatestVersion { [weak self] latest in
+            guard let self, self.checkForUpdates, let latest else { return }
+            UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "lastUpdateCheck")
+            let current = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0"
+            self.updateAvailable = UpdateCheck.isNewer(latest, than: current) ? latest : nil
+        }
     }
 
     func reload() {

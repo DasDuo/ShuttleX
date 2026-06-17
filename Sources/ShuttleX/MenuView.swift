@@ -19,6 +19,9 @@ struct MenuView: View {
             searchField
             Divider()
             content
+            if let version = state.updateAvailable {
+                updateBanner(version)
+            }
             if let error = state.lastError {
                 errorBanner(error)
             }
@@ -28,6 +31,7 @@ struct MenuView: View {
         .frame(width: 320)
         .onAppear {
             state.reload()
+            state.maybeCheckForUpdates()
             searchFocused = true
         }
     }
@@ -155,6 +159,29 @@ struct MenuView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 28)
+    }
+
+    private func updateBanner(_ version: String) -> some View {
+        Button {
+            dismissMenuWindow()
+            NSWorkspace.shared.open(UpdateCheck.releasesURL)
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: "arrow.down.circle.fill")
+                    .foregroundStyle(.blue)
+                Text("Update available: \(version)")
+                    .font(.system(size: 11, weight: .medium))
+                Spacer()
+                Image(systemName: "arrow.up.forward")
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("Open the download page")
     }
 
     private func errorBanner(_ message: String) -> some View {

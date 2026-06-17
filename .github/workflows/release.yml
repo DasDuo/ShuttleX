@@ -29,7 +29,17 @@ jobs:
         run: ./build.sh
       - name: Package DMG
         run: ./make-dmg.sh
+      - name: Extract release notes from CHANGELOG
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v ver="## [$VERSION]" '
+            index($0, ver) == 1 { flag = 1; next }
+            /^## \[/ { if (flag) exit }
+            flag { print }
+          ' CHANGELOG.md > RELEASE_NOTES.md
+          [ -s RELEASE_NOTES.md ] || echo "Release $VERSION" > RELEASE_NOTES.md
+          echo "---- release notes ----"; cat RELEASE_NOTES.md
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" ShuttleX-*-arm64.dmg ShuttleX-*-arm64.zip --generate-notes
+        run: gh release create "$GITHUB_REF_NAME" ShuttleX-*-arm64.dmg ShuttleX-*-arm64.zip --title "ShuttleX $GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md

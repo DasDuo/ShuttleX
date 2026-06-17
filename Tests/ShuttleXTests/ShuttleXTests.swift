@@ -246,6 +246,18 @@ private func makeTempDir() -> URL {
     #expect(TerminalLauncher.effectiveMode(requested: .splitRight, supported: [.newWindow], isRunning: true) == .newWindow)
 }
 
+// MARK: - Update check
+
+@Test func updateCheckComparesVersionsNumerically() {
+    #expect(UpdateCheck.isNewer("1.7.0", than: "1.6.4"))
+    #expect(UpdateCheck.isNewer("v1.7.0", than: "1.6.4"))   // leading "v" tolerated
+    #expect(UpdateCheck.isNewer("1.6.10", than: "1.6.9"))   // numeric, not lexical
+    #expect(UpdateCheck.isNewer("2.0.0", than: "1.9.9"))
+    #expect(!UpdateCheck.isNewer("1.6.4", than: "1.6.4"))   // equal → not newer
+    #expect(!UpdateCheck.isNewer("1.6.3", than: "1.6.4"))   // older
+    #expect(!UpdateCheck.isNewer("1.6", than: "1.6.0"))     // missing component counts as 0
+}
+
 // MARK: - JSON merge
 
 @Test func mergeUpdatesMatchingAndAppendsNew() {

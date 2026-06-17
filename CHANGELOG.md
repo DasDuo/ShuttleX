@@ -4,6 +4,14 @@ All notable changes to ShuttleX are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-06-17
+
+### Added
+- Optional update check (off by default): when enabled in Settings → General, ShuttleX checks the public GitHub Releases API at most once a day and shows an "Update available" hint in the menu that links to the download page. No account, no tracking; it never auto-installs.
+
+### Changed
+- Release notes are now taken from this changelog instead of an auto-generated commit list.
+
 ## [1.6.4] - 2026-06-17
 
 ### Fixed
@@ -114,6 +122,7 @@ All notable changes to ShuttleX are documented here. The format is based on
 ### Added
 - Initial release. A menu-bar SSH launcher built with SwiftUI (`MenuBarExtra`), pure arm64 for Apple Silicon. Hosts from `~/.ssh/config` or a JSON file; choose your terminal (Terminal, iTerm2, Ghostty, Warp, Alacritty, kitty, WezTerm); open in a new window, tab, or split.
 
+[1.7.0]: https://github.com/DasDuo/ShuttleX/compare/v1.6.4...v1.7.0
 [1.6.4]: https://github.com/DasDuo/ShuttleX/compare/v1.6.3...v1.6.4
 [1.6.3]: https://github.com/DasDuo/ShuttleX/compare/v1.6.2...v1.6.3
 [1.6.2]: https://github.com/DasDuo/ShuttleX/compare/v1.6.1...v1.6.2
