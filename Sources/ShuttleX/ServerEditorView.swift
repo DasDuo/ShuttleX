@@ -30,7 +30,12 @@ struct ServerEditorView: View {
         .onAppear { file = JSONHostStore.loadFile(from: state.jsonURL) }
         .sheet(item: $form) { model in
             EntryForm(model: model, existingGroups: groups.map(\.name)) { result in
-                file = ServerEditing.upsert(file, group: result.group, entry: result.entry, replacing: result.original)
+                if let original = result.original {
+                    file = ServerEditing.update(file, group: original.group, id: original.id,
+                                                to: result.entry, newGroup: result.group)
+                } else {
+                    file = ServerEditing.add(file, group: result.group, entry: result.entry)
+                }
                 persist()
             }
         }
@@ -64,22 +69,20 @@ struct ServerEditorView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    ForEach(groups, id: \.name) { group in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(group.name)
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(.secondary)
-                            ForEach(Array(group.hosts.enumerated()), id: \.offset) { _, entry in
-                                row(group: group.name, entry: entry)
-                            }
+            List {
+                ForEach(groups, id: \.name) { group in
+                    Section(group.name) {
+                        ForEach(group.hosts) { entry in
+                            row(group: group.name, entry: entry)
+                        }
+                        .onMove { from, to in
+                            file = ServerEditing.move(file, group: group.name, fromOffsets: from, toOffset: to)
+                            persist()
                         }
                     }
                 }
-                .padding(16)
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .listStyle(.inset)
         }
     }
 
@@ -93,23 +96,24 @@ struct ServerEditorView: View {
             Button("Edit") { form = EntryForm.Model(from: entry, group: group) }
                 .buttonStyle(.borderless)
             Button(role: .destructive) {
-                file = ServerEditing.delete(file, group: group, name: entry.name)
+                file = ServerEditing.delete(file, group: group, id: entry.id)
                 persist()
             } label: {
                 Image(systemName: "trash")
             }
             .buttonStyle(.borderless)
+            Image(systemName: "line.3.horizontal")
+                .foregroundStyle(.tertiary)
+                .help("Drag to reorder within the group")
         }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 8)
-        .background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 7))
     }
 
     private func detail(_ entry: JSONHostStore.Entry) -> String {
-        if let command = entry.command { return command }
+        if let command = entry.command, !command.isEmpty { return command }
         let host = entry.host ?? ""
         var target = entry.user.map { "\($0)@\(host)" } ?? host
         if let port = entry.port, port != 22 { target += ":\(port)" }
+        if let remote = entry.remoteCommand, !remote.isEmpty { target += " — \(remote)" }
         return target
     }
 
@@ -150,8 +154,10 @@ struct EntryForm: View {
         var user = ""
         var host = ""
         var port = ""
+        var remoteCommand = ""
         var command = ""
-        var original: (group: String, name: String)?
+        var rawMode = false
+        var original: (group: String, id: UUID)?
 
         init(group: String = "") {
             self.group = group
@@ -163,15 +169,17 @@ struct EntryForm: View {
             user = entry.user ?? ""
             host = entry.host ?? ""
             port = entry.port.map(String.init) ?? ""
+            remoteCommand = entry.remoteCommand ?? ""
             command = entry.command ?? ""
-            original = (group: group, name: entry.name)
+            rawMode = !(entry.command ?? "").isEmpty
+            original = (group: group, id: entry.id)
         }
     }
 
     struct Result {
         let group: String
         let entry: JSONHostStore.Entry
-        let original: (group: String, name: String)?
+        let original: (group: String, id: UUID)?
     }
 
     @State private var model: Model
@@ -185,15 +193,15 @@ struct EntryForm: View {
         self.onSave = onSave
     }
 
-    private var usesCommand: Bool {
-        !model.command.trimmingCharacters(in: .whitespaces).isEmpty
-    }
-
     private var validationError: String? {
         if model.name.trimmingCharacters(in: .whitespaces).isEmpty { return "Name is required." }
-        if !usesCommand {
+        if model.rawMode {
+            if model.command.trimmingCharacters(in: .whitespaces).isEmpty {
+                return "Enter a command, or turn off raw command mode."
+            }
+        } else {
             let host = model.host.trimmingCharacters(in: .whitespaces)
-            if host.isEmpty { return "Host or IP is required (or set a custom command)." }
+            if host.isEmpty { return "Host or IP is required." }
             if !HostValidation.isSafe(host) { return "Host contains invalid characters." }
             if !HostValidation.isSafe(model.user) { return "User contains invalid characters." }
             if !model.port.isEmpty, Int(model.port) == nil { return "Port must be a number." }
@@ -220,18 +228,25 @@ struct EntryForm: View {
                             .fixedSize()
                         }
                     }
-                    TextField("User", text: $model.user)
-                        .disabled(usesCommand)
-                    TextField("Host or IP", text: $model.host)
-                        .disabled(usesCommand)
-                    TextField("Port (optional)", text: $model.port)
-                        .disabled(usesCommand)
+                    Toggle("Raw custom command", isOn: $model.rawMode)
                 }
-                Section("Advanced") {
-                    TextField("Custom command (optional)", text: $model.command)
-                    Text("If set, this runs verbatim and overrides user/host/port — e.g. for jump hosts or tunnels.")
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
+                if model.rawMode {
+                    Section("Custom command") {
+                        TextField("Command", text: $model.command)
+                        Text("Runs verbatim and ignores user/host/port — e.g. a jump host or tunnel.")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    Section("Connection") {
+                        TextField("User", text: $model.user)
+                        TextField("Host or IP", text: $model.host)
+                        TextField("Port (optional)", text: $model.port)
+                        TextField("Remote command (optional)", text: $model.remoteCommand)
+                        Text("Leave the remote command empty for an interactive shell. If set, it runs on the server with a TTY (e.g. htop).")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 if let validationError {
                     Label(validationError, systemImage: "exclamationmark.triangle.fill")
@@ -259,18 +274,23 @@ struct EntryForm: View {
     private func save() {
         guard validationError == nil else { return }
         let name = model.name.trimmingCharacters(in: .whitespaces)
-        let command = model.command.trimmingCharacters(in: .whitespaces)
         let entry: JSONHostStore.Entry
-        if !command.isEmpty {
-            entry = JSONHostStore.Entry(name: name, host: nil, user: nil, port: nil, command: command)
+        if model.rawMode {
+            entry = JSONHostStore.Entry(
+                name: name, host: nil, user: nil, port: nil,
+                command: model.command.trimmingCharacters(in: .whitespaces),
+                remoteCommand: nil
+            )
         } else {
             let user = model.user.trimmingCharacters(in: .whitespaces)
+            let remote = model.remoteCommand.trimmingCharacters(in: .whitespaces)
             entry = JSONHostStore.Entry(
                 name: name,
                 host: model.host.trimmingCharacters(in: .whitespaces),
                 user: user.isEmpty ? nil : user,
                 port: model.port.isEmpty ? nil : Int(model.port),
-                command: nil
+                command: nil,
+                remoteCommand: remote.isEmpty ? nil : remote
             )
         }
         onSave(Result(group: model.group, entry: entry, original: model.original))

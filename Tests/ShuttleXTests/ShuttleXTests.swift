@@ -108,6 +108,24 @@ private func makeTempDir() -> URL {
     #expect(groups.first?.hosts.first?.command == "ssh 'root@1.2.3.4; touch /tmp/x'")
 }
 
+@Test func jsonBuildsRemoteCommandWithTTY() throws {
+    let dir = makeTempDir(); defer { try? FileManager.default.removeItem(at: dir) }
+    let url = dir.appendingPathComponent("servers.json")
+    let file = JSONHostStore.File(
+        groups: [.init(name: "g", hosts: [
+            .init(name: "htop", host: "web01", user: "deploy", port: nil, command: nil, remoteCommand: "htop"),
+            .init(name: "tail", host: "h", user: "u", port: 2222, command: nil, remoteCommand: "tail -f /var/log/x"),
+            .init(name: "shell", host: "web01", user: "deploy", port: nil, command: nil, remoteCommand: nil),
+        ])],
+        hosts: nil
+    )
+    try JSONHostStore.write(file, to: url)
+    let hosts = try JSONHostStore.load(from: url).first!.hosts
+    #expect(hosts[0].command == "ssh -t 'deploy@web01' 'htop'")
+    #expect(hosts[1].command == "ssh -t -p 2222 'u@h' 'tail -f /var/log/x'")
+    #expect(hosts[2].command == "ssh 'deploy@web01'") // no remote command → plain connect
+}
+
 // MARK: - Search filtering
 
 @Test func searchMatchesGroupNameOrHost() {
@@ -150,36 +168,53 @@ private func makeTempDir() -> URL {
 
 // MARK: - Server editing (add / edit / delete)
 
-@Test func serverEditingUpsertAndDelete() {
+@Test func serverEditingAddUpdateDelete() {
     var file = JSONHostStore.File(
         groups: [.init(name: "A", hosts: [.init(name: "h1", host: "old", user: nil, port: nil, command: nil)])],
         hosts: nil
     )
+    let h1id = file.groups![0].hosts[0].id
 
     // Add a new host to a new group.
-    file = ServerEditing.upsert(file, group: "B",
-                                entry: .init(name: "h2", host: "x", user: nil, port: nil, command: nil),
-                                replacing: nil)
+    file = ServerEditing.add(file, group: "B", entry: .init(name: "h2", host: "x", user: nil, port: nil, command: nil))
     #expect(file.groups?.count == 2)
 
-    // Edit h1: rename, change host, and move it from group A to B.
-    file = ServerEditing.upsert(file, group: "B",
-                                entry: .init(name: "h1b", host: "new", user: nil, port: nil, command: nil),
-                                replacing: (group: "A", name: "h1"))
-    #expect(file.groups?.contains { $0.name == "A" } == false) // emptied → removed
-    let groupB = file.groups?.first { $0.name == "B" }
-    #expect(groupB?.hosts.count == 2)
-    #expect(groupB?.hosts.contains { $0.name == "h1b" && $0.host == "new" } == true)
+    // Update h1 in place (rename + host), staying in A.
+    file = ServerEditing.update(file, group: "A", id: h1id,
+                                to: .init(name: "h1b", host: "new", user: nil, port: nil, command: nil),
+                                newGroup: "A")
+    #expect(file.groups?.first { $0.name == "A" }?.hosts.first?.name == "h1b")
+    #expect(file.groups?.first { $0.name == "A" }?.hosts.first?.host == "new")
+
+    // Move it from A to B; A is emptied and removed.
+    let h1bid = file.groups!.first { $0.name == "A" }!.hosts[0].id
+    file = ServerEditing.update(file, group: "A", id: h1bid,
+                                to: .init(name: "h1b", host: "new", user: nil, port: nil, command: nil),
+                                newGroup: "B")
+    #expect(file.groups?.contains { $0.name == "A" } == false)
+    #expect(file.groups?.first { $0.name == "B" }?.hosts.count == 2)
 
     // Empty group name falls back to "Servers".
-    file = ServerEditing.upsert(file, group: "   ",
-                                entry: .init(name: "loose", host: "y", user: nil, port: nil, command: nil),
-                                replacing: nil)
+    file = ServerEditing.add(file, group: "   ", entry: .init(name: "loose", host: "y", user: nil, port: nil, command: nil))
     #expect(file.groups?.contains { $0.name == "Servers" } == true)
+}
 
-    // Delete.
-    file = ServerEditing.delete(file, group: "B", name: "h2")
-    #expect(file.groups?.first { $0.name == "B" }?.hosts.count == 1)
+@Test func serverEditingHandlesDuplicateNames() {
+    // Two entries with the SAME name but different hosts (the AdGuard case).
+    var file = JSONHostStore.File(
+        groups: [.init(name: "DNS", hosts: [
+            .init(name: "AdGuard", host: "10.0.0.1", user: nil, port: nil, command: nil),
+            .init(name: "AdGuard", host: "10.0.0.2", user: nil, port: nil, command: nil),
+        ])],
+        hosts: nil
+    )
+    let firstID = file.groups![0].hosts[0].id
+
+    // Deleting by id removes ONLY that one, not both.
+    file = ServerEditing.delete(file, group: "DNS", id: firstID)
+    let remaining = file.groups!.first { $0.name == "DNS" }!.hosts
+    #expect(remaining.count == 1)
+    #expect(remaining.first?.host == "10.0.0.2") // the other one survives
 }
 
 // MARK: - SSH config parsing
@@ -231,6 +266,25 @@ private func makeTempDir() -> URL {
     #expect(TerminalLauncher.appleScriptEscaped("a\r\nb") == "a\\r\\nb")
     // A backslash already present must not double-escape the control-char escapes.
     #expect(TerminalLauncher.appleScriptEscaped("x\\\ny") == "x\\\\\\ny")
+}
+
+@Test func serverEditingMovesWithinGroup() {
+    var file = JSONHostStore.File(
+        groups: [.init(name: "A", hosts: [
+            .init(name: "a", host: "1", user: nil, port: nil, command: nil),
+            .init(name: "b", host: "2", user: nil, port: nil, command: nil),
+            .init(name: "c", host: "3", user: nil, port: nil, command: nil),
+        ])],
+        hosts: nil
+    )
+    func order() -> [String] { file.groups?.first?.hosts.map(\.name) ?? [] }
+
+    // Move "c" (index 2) to the front.
+    file = ServerEditing.move(file, group: "A", fromOffsets: IndexSet(integer: 2), toOffset: 0)
+    #expect(order() == ["c", "a", "b"])
+    // Move "c" (index 0) back down past "a".
+    file = ServerEditing.move(file, group: "A", fromOffsets: IndexSet(integer: 0), toOffset: 2)
+    #expect(order() == ["a", "c", "b"])
 }
 
 // MARK: - Launch mode resolution

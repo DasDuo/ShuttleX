@@ -12,12 +12,22 @@ enum JSONHostStore {
         var hosts: [Entry]
     }
 
-    struct Entry: Codable {
+    struct Entry: Codable, Identifiable {
+        /// In-memory identity (not persisted) so duplicate-named entries stay distinct
+        /// in the editor. Regenerated on load; never written to JSON.
+        var id = UUID()
         var name: String
         var host: String?
         var user: String?
         var port: Int?
+        /// A raw command run verbatim (overrides host/user/port) — e.g. jump hosts.
         var command: String?
+        /// A command to run on the server, built on top of host/user/port (gets a TTY).
+        var remoteCommand: String?
+
+        private enum CodingKeys: String, CodingKey {
+            case name, host, user, port, command, remoteCommand
+        }
     }
 
     static let defaultURL = FileManager.default.homeDirectoryForCurrentUser
@@ -47,16 +57,25 @@ enum JSONHostStore {
     }
 
     private static func makeHost(_ entry: Entry) -> SSHHost {
-        if let command = entry.command {
+        // A raw command takes over completely.
+        if let command = entry.command, !command.isEmpty {
             return SSHHost(name: entry.name, detail: command, command: command)
         }
+
         let host = entry.host ?? entry.name
-        var target = host
-        if let user = entry.user { target = "\(user)@\(host)" }
-        // Shell-quote the target so host/user values can't inject shell commands.
-        var command = "ssh \(Shell.quote(target))"
-        if let port = entry.port, port != 22 { command += " -p \(port)" }
-        return SSHHost(name: entry.name, detail: target, command: command)
+        let target = entry.user.map { "\($0)@\(host)" } ?? host
+        let remote = entry.remoteCommand.flatMap { $0.isEmpty ? nil : $0 }
+
+        // Build `ssh [-t] [-p port] user@host [remote-command]`. Everything is
+        // shell-quoted so host/user/command values can't inject shell commands.
+        var parts = ["ssh"]
+        if remote != nil { parts.append("-t") } // TTY, so interactive tools (htop) work
+        if let port = entry.port, port != 22 { parts.append("-p"); parts.append(String(port)) }
+        parts.append(Shell.quote(target))
+        if let remote { parts.append(Shell.quote(remote)) }
+
+        let detail = remote.map { "\(target): \($0)" } ?? target
+        return SSHHost(name: entry.name, detail: detail, command: parts.joined(separator: " "))
     }
 
     /// Writes the JSON file nicely formatted (snapshots the previous version first).

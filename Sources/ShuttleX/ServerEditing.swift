@@ -1,50 +1,74 @@
 import Foundation
 
-/// Pure helpers that add/update/remove a host inside a JSON file structure.
+/// Pure helpers that add/update/remove/reorder a host inside a JSON file structure.
+/// Entries are addressed by their (in-memory) `id`, so duplicate names stay distinct.
 /// Kept separate from the UI so they can be unit-tested.
 enum ServerEditing {
-    /// Inserts or updates `entry` in `group`. When `original` is given (editing an
-    /// existing host), that host is removed first, so renames and group moves work.
-    /// Groups that become empty are dropped; a missing target group is created.
-    static func upsert(
-        _ file: JSONHostStore.File,
-        group rawGroup: String,
-        entry: JSONHostStore.Entry,
-        replacing original: (group: String, name: String)?
-    ) -> JSONHostStore.File {
+    /// Appends a new entry to `group` (creating the group if needed).
+    static func add(_ file: JSONHostStore.File, group rawGroup: String, entry: JSONHostStore.Entry) -> JSONHostStore.File {
         var groups = file.groups ?? []
-
-        if let original {
-            if let index = groups.firstIndex(where: { $0.name == original.group }) {
-                groups[index].hosts.removeAll { $0.name == original.name }
-                if groups[index].hosts.isEmpty { groups.remove(at: index) }
-            }
-        }
-
-        let trimmed = rawGroup.trimmingCharacters(in: .whitespaces)
-        let group = trimmed.isEmpty ? "Servers" : trimmed
-
+        let group = normalized(rawGroup)
         if let index = groups.firstIndex(where: { $0.name == group }) {
-            if let hostIndex = groups[index].hosts.firstIndex(where: { $0.name == entry.name }) {
-                groups[index].hosts[hostIndex] = entry
-            } else {
-                groups[index].hosts.append(entry)
-            }
+            groups[index].hosts.append(entry)
         } else {
             groups.append(JSONHostStore.Group(name: group, hosts: [entry]))
         }
-
-        var result = file
-        result.groups = groups
-        return result
+        return withGroups(file, groups)
     }
 
-    static func delete(_ file: JSONHostStore.File, group: String, name: String) -> JSONHostStore.File {
+    /// Replaces the entry identified by `id` in `group` with `entry`. When `newGroup`
+    /// differs, the entry moves there. Groups left empty are dropped; a missing target
+    /// group is created.
+    static func update(
+        _ file: JSONHostStore.File,
+        group: String,
+        id: UUID,
+        to entry: JSONHostStore.Entry,
+        newGroup rawNewGroup: String
+    ) -> JSONHostStore.File {
         var groups = file.groups ?? []
-        if let index = groups.firstIndex(where: { $0.name == group }) {
-            groups[index].hosts.removeAll { $0.name == name }
-            if groups[index].hosts.isEmpty { groups.remove(at: index) }
+        guard let groupIndex = groups.firstIndex(where: { $0.name == group }),
+              let hostIndex = groups[groupIndex].hosts.firstIndex(where: { $0.id == id })
+        else { return file }
+
+        let newGroup = normalized(rawNewGroup)
+        if newGroup == group {
+            groups[groupIndex].hosts[hostIndex] = entry
+            return withGroups(file, groups)
         }
+
+        groups[groupIndex].hosts.remove(at: hostIndex)
+        if groups[groupIndex].hosts.isEmpty { groups.remove(at: groupIndex) }
+        if let targetIndex = groups.firstIndex(where: { $0.name == newGroup }) {
+            groups[targetIndex].hosts.append(entry)
+        } else {
+            groups.append(JSONHostStore.Group(name: newGroup, hosts: [entry]))
+        }
+        return withGroups(file, groups)
+    }
+
+    static func delete(_ file: JSONHostStore.File, group: String, id: UUID) -> JSONHostStore.File {
+        var groups = file.groups ?? []
+        guard let groupIndex = groups.firstIndex(where: { $0.name == group }) else { return file }
+        groups[groupIndex].hosts.removeAll { $0.id == id }
+        if groups[groupIndex].hosts.isEmpty { groups.remove(at: groupIndex) }
+        return withGroups(file, groups)
+    }
+
+    /// Reorders hosts within a group, following SwiftUI `.onMove` semantics.
+    static func move(_ file: JSONHostStore.File, group: String, fromOffsets: IndexSet, toOffset: Int) -> JSONHostStore.File {
+        var groups = file.groups ?? []
+        guard let groupIndex = groups.firstIndex(where: { $0.name == group }) else { return file }
+        groups[groupIndex].hosts.move(fromOffsets: fromOffsets, toOffset: toOffset)
+        return withGroups(file, groups)
+    }
+
+    private static func normalized(_ name: String) -> String {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        return trimmed.isEmpty ? "Servers" : trimmed
+    }
+
+    private static func withGroups(_ file: JSONHostStore.File, _ groups: [JSONHostStore.Group]) -> JSONHostStore.File {
         var result = file
         result.groups = groups
         return result

@@ -16,7 +16,8 @@ A modern SSH launcher for the macOS menu bar — inspired by the original [SSHMe
 - **Switchable server source** (Settings → Server source):
   - `~/.ssh/config` — hosts are read directly (including `Include` directives; wildcard hosts like `*` are ignored)
   - JSON file at `~/.config/shuttlex/servers.json` (created with sample entries the first time you switch to it). The path is configurable in Settings, and the last 3 versions are kept as backups next to the file (`servers.backup-…json`) on every change — manual or imported
-- **Add, edit and delete servers in-app** (JSON source) — manage your connection list from a GUI in Settings → "Add / edit servers…", no hand-editing of JSON required
+- **Add, edit, delete and reorder servers in-app** (JSON source) — manage your connection list from a GUI in Settings → "Add / edit servers…" (drag to reorder within a group), no hand-editing of JSON required
+- **Run a command on a server**: give an entry a *remote command* (e.g. `htop`, `tail -f …`) and ShuttleX runs it over SSH with a TTY; or use a *raw custom command* for jump hosts/tunnels
 - **Choose your terminal app**: Terminal, iTerm2, Ghostty, Warp, Alacritty, kitty, WezTerm — only apps that are actually installed are offered (also switchable right in the dropdown footer)
 - **Choose how it opens** (dropdown footer or Settings): new window, new tab, or split pane — depending on what the terminal app supports:
   - iTerm2: window, tab, split right, split down
@@ -106,6 +107,7 @@ A sample file lives at [`examples/servers-sample.csv`](examples/servers-sample.c
       "hosts": [
         { "name": "Web server", "user": "root", "host": "web1.example.com" },
         { "name": "Database", "user": "admin", "host": "db.example.com", "port": 2222 },
+        { "name": "Database · htop", "user": "admin", "host": "db.example.com", "remoteCommand": "htop" },
         { "name": "Via jump host", "command": "ssh -J jump.example.com root@10.0.0.5" }
       ]
     }
@@ -117,8 +119,9 @@ A sample file lives at [`examples/servers-sample.csv`](examples/servers-sample.c
 ```
 
 - `host`/`user`/`port` are assembled into `ssh user@host -p port`
-- `command` allows arbitrary custom commands (jump hosts, tunnels, mosh, …)
-- top-level `hosts` end up in a group called "Server"
+- `remoteCommand` runs a command on the server, built on top of `host`/`user`/`port`, with a TTY (so interactive tools like `htop` work): `ssh -t user@host <remoteCommand>`
+- `command` allows arbitrary custom commands run verbatim (jump hosts, tunnels, mosh, …) and overrides `host`/`user`/`port`
+- top-level `hosts` end up in a group called "Servers"
 
 ## Distributing to another Mac
 

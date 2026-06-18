@@ -4,6 +4,15 @@ All notable changes to ShuttleX are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-06-17
+
+### Added
+- Run a command on a server: a new **Remote command** field in the editor (`remoteCommand` in JSON) builds `ssh -t … <command>` from the host/user/port — e.g. enter `htop`. A **Raw custom command** toggle keeps the verbatim mode for jump hosts/tunnels.
+- Reorder servers within a group by dragging them in the editor.
+
+### Fixed
+- Servers that share a name (e.g. two "AdGuard" with different IPs) are now handled correctly in the editor — editing, deleting or reordering one no longer affects the other. Entries now carry an internal id instead of being matched by name.
+
 ## [1.7.2] - 2026-06-17
 
 ### Changed
@@ -132,6 +141,7 @@ All notable changes to ShuttleX are documented here. The format is based on
 ### Added
 - Initial release. A menu-bar SSH launcher built with SwiftUI (`MenuBarExtra`), pure arm64 for Apple Silicon. Hosts from `~/.ssh/config` or a JSON file; choose your terminal (Terminal, iTerm2, Ghostty, Warp, Alacritty, kitty, WezTerm); open in a new window, tab, or split.
 
+[1.8.0]: https://github.com/DasDuo/ShuttleX/compare/v1.7.2...v1.8.0
 [1.7.2]: https://github.com/DasDuo/ShuttleX/compare/v1.7.1...v1.7.2
 [1.7.1]: https://github.com/DasDuo/ShuttleX/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/DasDuo/ShuttleX/compare/v1.6.4...v1.7.0
