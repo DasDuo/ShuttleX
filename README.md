@@ -27,7 +27,7 @@ A modern SSH launcher for the macOS menu bar — inspired by the original [SSHMe
   - Terminal.app: window, tab (tab needs the Accessibility permission once, see Notes)
   - Ghostty, Warp, Alacritty, kitty, WezTerm: new windows only (can't be steered otherwise from outside; unsupported modes fall back to "new window" automatically)
   - When the terminal isn't running yet, a new window is always opened — tab/split only apply once a window exists
-- Search + Enter connects straight to the first match
+- **Keyboard-friendly**: the search field is focused on open; type to filter, **↑/↓** to pick a result (the list scrolls to follow), and **Enter** to connect — the search clears afterwards
 - Optional: launch at login (Settings → General)
 - **Optional update check** (off by default): enable it in Settings to get a hint in the menu when a newer release is on GitHub — it checks the public Releases API at most once a day (no account, no tracking) and links to the download; it never auto-installs
 

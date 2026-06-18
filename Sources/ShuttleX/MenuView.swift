@@ -8,6 +8,8 @@ struct MenuView: View {
     @State private var expandedGroups: Set<String> = []
     /// nil = use the count-based default; set once the user toggles Favorites.
     @State private var favoritesExpanded: Bool?
+    /// Keyboard-selected host (↑/↓ navigation), by SSHHost id.
+    @State private var selectedID: SSHHost.ID?
 
     /// Fixed height for the scrollable list area so the popover window never
     /// resizes (and thus never gets repositioned by macOS) when groups expand.
@@ -106,7 +108,10 @@ struct MenuView: View {
                 .textFieldStyle(.plain)
                 .font(.system(size: 13))
                 .focused($searchFocused)
-                .onSubmit(connectToFirstMatch)
+                .onSubmit(connectSelected)
+                .onKeyPress(.upArrow) { moveSelection(-1); return .handled }
+                .onKeyPress(.downArrow) { moveSelection(1); return .handled }
+                .onChange(of: query) { selectedID = visibleHosts.first?.id }
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)
@@ -122,37 +127,45 @@ struct MenuView: View {
         if displayGroups.isEmpty {
             emptyState
         } else {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 2) {
-                    ForEach(displayGroups) { group in
-                        GroupHeader(
-                            name: group.name,
-                            count: group.hosts.count,
-                            expanded: isExpanded(group)
-                        ) {
-                            toggle(group)
-                        }
-                        if isExpanded(group) {
-                            ForEach(group.hosts) { host in
-                                HostRow(
-                                    host: host,
-                                    canFavorite: state.source == .json,
-                                    onToggleFavorite: { state.toggleFavorite(host) }
-                                ) {
-                                    connect(host)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 2) {
+                        ForEach(displayGroups) { group in
+                            GroupHeader(
+                                name: group.name,
+                                count: group.hosts.count,
+                                expanded: isExpanded(group)
+                            ) {
+                                toggle(group)
+                            }
+                            if isExpanded(group) {
+                                ForEach(group.hosts) { host in
+                                    HostRow(
+                                        host: host,
+                                        selected: host.id == selectedID,
+                                        canFavorite: state.source == .json,
+                                        onToggleFavorite: { state.toggleFavorite(host) }
+                                    ) {
+                                        connect(host)
+                                    }
+                                    .padding(.leading, 12)
+                                    .id(host.id)
                                 }
-                                .padding(.leading, 12)
                             }
                         }
                     }
+                    .padding(.horizontal, 6)
+                    .padding(.bottom, 6)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .padding(.horizontal, 6)
-                .padding(.bottom, 6)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                // Fixed height → the window keeps a constant size, so expanding a
+                // group scrolls inside the list instead of resizing/moving the popover.
+                .frame(height: listHeight)
+                // Keep the keyboard-selected row visible as ↑/↓ moves it.
+                .onChange(of: selectedID) {
+                    if let selectedID { proxy.scrollTo(selectedID) }
+                }
             }
-            // Fixed height → the window keeps a constant size, so expanding a
-            // group scrolls inside the list instead of resizing/moving the popover.
-            .frame(height: listHeight)
         }
     }
 
@@ -266,11 +279,36 @@ struct MenuView: View {
     private func connect(_ host: SSHHost) {
         dismissMenuWindow()
         state.connect(host)
+        query = ""
+        selectedID = nil
     }
 
-    private func connectToFirstMatch() {
-        if let first = filteredGroups.first?.hosts.first {
-            connect(first)
+    // MARK: - Keyboard navigation
+
+    /// Hosts the ↑/↓ keys step through: every visible host in display order, deduped.
+    private var visibleHosts: [SSHHost] {
+        var seen = Set<SSHHost.ID>()
+        var result: [SSHHost] = []
+        for group in displayGroups where isExpanded(group) {
+            for host in group.hosts where seen.insert(host.id).inserted {
+                result.append(host)
+            }
+        }
+        return result
+    }
+
+    private func moveSelection(_ delta: Int) {
+        let hosts = visibleHosts
+        guard !hosts.isEmpty else { selectedID = nil; return }
+        let current = hosts.firstIndex { $0.id == selectedID }
+        let next = current.map { min(max($0 + delta, 0), hosts.count - 1) } ?? (delta > 0 ? 0 : hosts.count - 1)
+        selectedID = hosts[next].id
+    }
+
+    private func connectSelected() {
+        let hosts = visibleHosts
+        if let host = hosts.first(where: { $0.id == selectedID }) ?? hosts.first {
+            connect(host)
         }
     }
 
@@ -358,6 +396,7 @@ private struct GroupHeader: View {
 
 private struct HostRow: View {
     let host: SSHHost
+    var selected = false
     var canFavorite = false
     var onToggleFavorite: () -> Void = {}
     let action: () -> Void
@@ -404,7 +443,8 @@ private struct HostRow: View {
         .buttonStyle(.plain)
         .background(
             RoundedRectangle(cornerRadius: 7)
-                .fill(hovered ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear))
+                .fill(selected ? AnyShapeStyle(Color.accentColor.opacity(0.25))
+                    : hovered ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear))
         )
         .onHover { hovered = $0 }
     }
