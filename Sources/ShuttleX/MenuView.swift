@@ -6,14 +6,28 @@ struct MenuView: View {
 
     @State private var query = ""
     @State private var expandedGroups: Set<String> = []
+    /// nil = use the count-based default; set once the user toggles Favorites.
+    @State private var favoritesExpanded: Bool?
 
     /// Fixed height for the scrollable list area so the popover window never
     /// resizes (and thus never gets repositioned by macOS) when groups expand.
     private let listHeight: CGFloat = 320
     @FocusState private var searchFocused: Bool
 
+    private let favoritesGroupName = "★ Favorites"
+
     private var filteredGroups: [HostGroup] {
         HostFiltering.filter(state.groups, query: query)
+    }
+
+    /// What the list renders: a synthetic Favorites section on top (JSON source,
+    /// when not searching and there are favorites), then the normal groups.
+    private var displayGroups: [HostGroup] {
+        let base = filteredGroups
+        guard query.isEmpty, state.source == .json else { return base }
+        let favorites = state.groups.flatMap(\.hosts).filter(\.favorite)
+        guard !favorites.isEmpty else { return base }
+        return [HostGroup(name: favoritesGroupName, hosts: favorites)] + base
     }
 
     var body: some View {
@@ -105,12 +119,12 @@ struct MenuView: View {
 
     @ViewBuilder
     private var content: some View {
-        if filteredGroups.isEmpty {
+        if displayGroups.isEmpty {
             emptyState
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 2) {
-                    ForEach(filteredGroups) { group in
+                    ForEach(displayGroups) { group in
                         GroupHeader(
                             name: group.name,
                             count: group.hosts.count,
@@ -120,7 +134,11 @@ struct MenuView: View {
                         }
                         if isExpanded(group) {
                             ForEach(group.hosts) { host in
-                                HostRow(host: host) {
+                                HostRow(
+                                    host: host,
+                                    canFavorite: state.source == .json,
+                                    onToggleFavorite: { state.toggleFavorite(host) }
+                                ) {
                                     connect(host)
                                 }
                                 .padding(.leading, 12)
@@ -262,12 +280,20 @@ struct MenuView: View {
     /// collapsed by default otherwise.
     private func isExpanded(_ group: HostGroup) -> Bool {
         if !query.isEmpty { return true }
-        if filteredGroups.count == 1 { return true }
+        if group.name == favoritesGroupName {
+            // Default expanded when small, but always collapsible once toggled.
+            return favoritesExpanded ?? (group.hosts.count <= 5)
+        }
+        if displayGroups.count == 1 { return true }
         return expandedGroups.contains(group.name)
     }
 
     private func toggle(_ group: HostGroup) {
         withAnimation(.easeInOut(duration: 0.15)) {
+            if group.name == favoritesGroupName {
+                favoritesExpanded = !isExpanded(group)
+                return
+            }
             if expandedGroups.contains(group.name) {
                 expandedGroups.remove(group.name)
             } else {
@@ -332,6 +358,8 @@ private struct GroupHeader: View {
 
 private struct HostRow: View {
     let host: SSHHost
+    var canFavorite = false
+    var onToggleFavorite: () -> Void = {}
     let action: () -> Void
 
     @State private var hovered = false
@@ -354,6 +382,15 @@ private struct HostRow: View {
                     }
                 }
                 Spacer()
+                if canFavorite, hovered || host.favorite {
+                    Button(action: onToggleFavorite) {
+                        Image(systemName: host.favorite ? "star.fill" : "star")
+                            .font(.system(size: 11))
+                            .foregroundStyle(host.favorite ? AnyShapeStyle(.yellow) : AnyShapeStyle(.secondary))
+                    }
+                    .buttonStyle(.plain)
+                    .help(host.favorite ? "Remove from favorites" : "Add to favorites")
+                }
                 if hovered {
                     Image(systemName: "arrow.up.forward")
                         .font(.system(size: 11, weight: .semibold))

@@ -6,6 +6,7 @@ struct SSHHost: Identifiable, Hashable {
     let name: String
     let detail: String?
     let command: String
+    var favorite = false
 
     var id: String { name + "|" + command }
 }

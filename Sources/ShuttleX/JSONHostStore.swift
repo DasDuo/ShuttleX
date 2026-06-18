@@ -24,9 +24,11 @@ enum JSONHostStore {
         var command: String?
         /// A command to run on the server, built on top of host/user/port (gets a TTY).
         var remoteCommand: String?
+        /// User-pinned favorite (written only when true, so the JSON stays clean).
+        var favorite: Bool?
 
         private enum CodingKeys: String, CodingKey {
-            case name, host, user, port, command, remoteCommand
+            case name, host, user, port, command, remoteCommand, favorite
         }
     }
 
@@ -57,9 +59,10 @@ enum JSONHostStore {
     }
 
     private static func makeHost(_ entry: Entry) -> SSHHost {
+        let favorite = entry.favorite ?? false
         // A raw command takes over completely.
         if let command = entry.command, !command.isEmpty {
-            return SSHHost(name: entry.name, detail: command, command: command)
+            return SSHHost(name: entry.name, detail: command, command: command, favorite: favorite)
         }
 
         let host = entry.host ?? entry.name
@@ -75,12 +78,13 @@ enum JSONHostStore {
         if let remote { parts.append(Shell.quote(remote)) }
 
         let detail = remote.map { "\(target): \($0)" } ?? target
-        return SSHHost(name: entry.name, detail: detail, command: parts.joined(separator: " "))
+        return SSHHost(name: entry.name, detail: detail, command: parts.joined(separator: " "), favorite: favorite)
     }
 
-    /// Writes the JSON file nicely formatted (snapshots the previous version first).
-    static func write(_ file: File, to url: URL) throws {
-        snapshotIfChanged(url)
+    /// Writes the JSON file nicely formatted. By default it snapshots the previous
+    /// version first; pass `snapshot: false` for trivial changes (e.g. toggling a favorite).
+    static func write(_ file: File, to url: URL, snapshot: Bool = true) throws {
+        if snapshot { snapshotIfChanged(url) }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
         let data = try encoder.encode(file)
@@ -89,6 +93,28 @@ enum JSONHostStore {
             withIntermediateDirectories: true
         )
         try data.write(to: url, options: .atomic)
+    }
+
+    /// Returns a copy of `file` with the favorite flag flipped on the entry that
+    /// produces `host` (matched by the built command + name). `true` is stored as
+    /// `true`, un-favoriting clears the field so the JSON stays clean.
+    static func togglingFavorite(in file: File, host: SSHHost) -> File {
+        func flip(_ entries: [Entry]) -> [Entry] {
+            entries.map { entry in
+                guard makeHost(entry).id == host.id else { return entry }
+                var copy = entry
+                copy.favorite = (entry.favorite == true) ? nil : true
+                return copy
+            }
+        }
+        var result = file
+        result.hosts = file.hosts.map(flip)
+        result.groups = file.groups?.map { group in
+            var copy = group
+            copy.hosts = flip(group.hosts)
+            return copy
+        }
+        return result
     }
 
     // MARK: - Backup history

@@ -133,6 +133,19 @@ final class AppState {
         }
     }
 
+    /// Pins/unpins a host as a favorite (JSON source only). Writes the flag to the
+    /// JSON entry without a backup snapshot and reloads.
+    func toggleFavorite(_ host: SSHHost) {
+        guard source == .json else { return }
+        let file = JSONHostStore.togglingFavorite(in: JSONHostStore.loadFile(from: jsonURL), host: host)
+        do {
+            try JSONHostStore.write(file, to: jsonURL, snapshot: false)
+            reload()
+        } catch {
+            lastError = "Could not update favorite: \(error.localizedDescription)"
+        }
+    }
+
     func connect(_ host: SSHHost) {
         lastError = nil
         let name = terminal.displayName

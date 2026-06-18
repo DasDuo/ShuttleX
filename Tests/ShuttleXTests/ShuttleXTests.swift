@@ -126,6 +126,35 @@ private func makeTempDir() -> URL {
     #expect(hosts[2].command == "ssh 'deploy@web01'") // no remote command → plain connect
 }
 
+@Test func favoritesPersistAndToggle() throws {
+    let dir = makeTempDir(); defer { try? FileManager.default.removeItem(at: dir) }
+    let url = dir.appendingPathComponent("servers.json")
+    let file = JSONHostStore.File(
+        groups: [.init(name: "g", hosts: [
+            .init(name: "a", host: "a", user: nil, port: nil, command: nil, remoteCommand: nil, favorite: true),
+            .init(name: "b", host: "b", user: nil, port: nil, command: nil),
+        ])],
+        hosts: nil
+    )
+    try JSONHostStore.write(file, to: url)
+
+    // favorite flag survives a write/load round trip; the clean JSON only stores `true`.
+    let hosts = try JSONHostStore.load(from: url).first!.hosts
+    #expect(hosts.first { $0.name == "a" }?.favorite == true)
+    #expect(hosts.first { $0.name == "b" }?.favorite == false)
+    let raw = try String(contentsOf: url, encoding: .utf8)
+    #expect(raw.contains("\"favorite\""))
+    #expect(!raw.contains("false"))
+
+    // Toggling flips a off and b on (matched by built command + name).
+    var toggled = JSONHostStore.togglingFavorite(in: JSONHostStore.loadFile(from: url), host: hosts.first { $0.name == "a" }!)
+    toggled = JSONHostStore.togglingFavorite(in: toggled, host: hosts.first { $0.name == "b" }!)
+    try JSONHostStore.write(toggled, to: url, snapshot: false)
+    let after = try JSONHostStore.load(from: url).first!.hosts
+    #expect(after.first { $0.name == "a" }?.favorite == false)
+    #expect(after.first { $0.name == "b" }?.favorite == true)
+}
+
 // MARK: - Search filtering
 
 @Test func searchMatchesGroupNameOrHost() {

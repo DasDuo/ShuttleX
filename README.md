@@ -20,6 +20,7 @@ A modern SSH launcher for the macOS menu bar — inspired by the original [SSHMe
   - JSON file at `~/.config/shuttlex/servers.json` (created with sample entries the first time you switch to it). The path is configurable in Settings, and the last 3 versions are kept as backups next to the file (`servers.backup-…json`) on every change — manual or imported
 - **Add, edit, delete and reorder servers in-app** (JSON source) — manage your connection list from a GUI in Settings → "Add / edit servers…" (drag to reorder within a group), no hand-editing of JSON required
 - **Run a command on a server**: give an entry a *remote command* (e.g. `htop`, `tail -f …`) and ShuttleX runs it over SSH with a TTY; or use a *raw custom command* for jump hosts/tunnels
+- **Favorites**: pin your most-used servers (hover the star in the menu, or toggle it in the editor) to a collapsible **★ Favorites** section at the top of the dropdown
 - **Choose your terminal app**: Terminal, iTerm2, Ghostty, Warp, Alacritty, kitty, WezTerm — only apps that are actually installed are offered (also switchable right in the dropdown footer)
 - **Choose how it opens** (dropdown footer or Settings): new window, new tab, or split pane — depending on what the terminal app supports:
   - iTerm2: window, tab, split right, split down

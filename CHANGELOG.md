@@ -4,6 +4,11 @@ All notable changes to ShuttleX are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-06-18
+
+### Added
+- Favorites: pin your most-used servers to a **★ Favorites** section at the top of the dropdown — hover the star on a row, or use the **Favorite** toggle in the editor. The section is expanded by default when small (≤5) and always collapsible. Stored as `favorite` in the JSON (written only when set); JSON source only.
+
 ## [1.8.0] - 2026-06-17
 
 ### Added
@@ -141,6 +146,7 @@ All notable changes to ShuttleX are documented here. The format is based on
 ### Added
 - Initial release. A menu-bar SSH launcher built with SwiftUI (`MenuBarExtra`), pure arm64 for Apple Silicon. Hosts from `~/.ssh/config` or a JSON file; choose your terminal (Terminal, iTerm2, Ghostty, Warp, Alacritty, kitty, WezTerm); open in a new window, tab, or split.
 
+[1.9.0]: https://github.com/DasDuo/ShuttleX/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/DasDuo/ShuttleX/compare/v1.7.2...v1.8.0
 [1.7.2]: https://github.com/DasDuo/ShuttleX/compare/v1.7.1...v1.7.2
 [1.7.1]: https://github.com/DasDuo/ShuttleX/compare/v1.7.0...v1.7.1

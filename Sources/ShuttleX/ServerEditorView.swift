@@ -157,6 +157,7 @@ struct EntryForm: View {
         var remoteCommand = ""
         var command = ""
         var rawMode = false
+        var favorite = false
         var original: (group: String, id: UUID)?
 
         init(group: String = "") {
@@ -172,6 +173,7 @@ struct EntryForm: View {
             remoteCommand = entry.remoteCommand ?? ""
             command = entry.command ?? ""
             rawMode = !(entry.command ?? "").isEmpty
+            favorite = entry.favorite ?? false
             original = (group: group, id: entry.id)
         }
     }
@@ -229,6 +231,7 @@ struct EntryForm: View {
                         }
                     }
                     Toggle("Raw custom command", isOn: $model.rawMode)
+                    Toggle("Favorite", isOn: $model.favorite)
                 }
                 if model.rawMode {
                     Section("Custom command") {
@@ -274,12 +277,13 @@ struct EntryForm: View {
     private func save() {
         guard validationError == nil else { return }
         let name = model.name.trimmingCharacters(in: .whitespaces)
+        let favorite: Bool? = model.favorite ? true : nil
         let entry: JSONHostStore.Entry
         if model.rawMode {
             entry = JSONHostStore.Entry(
                 name: name, host: nil, user: nil, port: nil,
                 command: model.command.trimmingCharacters(in: .whitespaces),
-                remoteCommand: nil
+                remoteCommand: nil, favorite: favorite
             )
         } else {
             let user = model.user.trimmingCharacters(in: .whitespaces)
@@ -290,7 +294,8 @@ struct EntryForm: View {
                 user: user.isEmpty ? nil : user,
                 port: model.port.isEmpty ? nil : Int(model.port),
                 command: nil,
-                remoteCommand: remote.isEmpty ? nil : remote
+                remoteCommand: remote.isEmpty ? nil : remote,
+                favorite: favorite
             )
         }
         onSave(Result(group: model.group, entry: entry, original: model.original))
