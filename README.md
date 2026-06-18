@@ -1,5 +1,7 @@
 # ShuttleX
 
+> 💬 **Help shape ShuttleX** — vote on what to build next in the [feature poll](https://github.com/DasDuo/ShuttleX/discussions/1).
+
 A modern SSH launcher for the macOS menu bar — inspired by the original [SSHMenu](https://sshmenu.sourceforge.net) and by [Shuttle](https://github.com/fitztrev/shuttle), rebuilt with SwiftUI (`MenuBarExtra`, `@Observable`). Pure **arm64** binary for Apple Silicon, not a universal app.
 
 <p align="center">
