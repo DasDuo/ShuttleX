@@ -128,6 +128,16 @@ A sample file lives at [`examples/servers-sample.csv`](examples/servers-sample.c
 - `command` allows arbitrary custom commands run verbatim (jump hosts, tunnels, mosh, …) and overrides `host`/`user`/`port`
 - top-level `hosts` end up in a group called "Servers"
 
+## Sharing your server list across Macs
+
+Because the JSON path is configurable (Settings → Server source → **Choose…**), you can point it at a folder that a cloud service syncs — iCloud Drive, Dropbox, OneDrive — to share one server list across your Macs. ShuttleX re-reads the file every time you open the menu, so changes from another machine show up on the next open.
+
+This is a lightweight setup, **not** built-in cloud sync, so keep a few things in mind:
+
+- **Edit on one Mac at a time.** ShuttleX doesn't merge concurrent edits; if two Macs change the file at once, your cloud service may create a "conflicted copy" that ShuttleX won't reconcile.
+- **The version backups sync too.** The `servers.backup-…json` files are written next to your JSON, so they'll appear in the synced folder as well.
+- **With iCloud Drive, keep the file downloaded** (avoid "Optimize Mac Storage" evicting it). If iCloud replaces it with a not-yet-downloaded placeholder, ShuttleX sees the path as missing and starts a fresh sample file instead.
+
 ## Distributing to another Mac
 
 Besides the app bundle, `./build.sh` produces `ShuttleX-<version>-arm64.zip`, and `./make-dmg.sh` packages a drag-to-install `ShuttleX-<version>-arm64.dmg`. Copy either to the target Mac and install the app to `/Applications`.
