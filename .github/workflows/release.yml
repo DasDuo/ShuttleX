@@ -38,6 +38,14 @@ jobs:
             exit 1
           fi
           echo "OK: version $BASE_VERSION matches Info.plist and has a CHANGELOG entry."
+      - name: Set release channel
+        run: |
+          # Force the in-app channel marker to match the tag, so a stable release
+          # never ships a leftover "beta" flag (and vice-versa).
+          if [ "$IS_PRERELEASE" = "true" ]; then CHANNEL=beta; else CHANNEL=stable; fi
+          /usr/libexec/PlistBuddy -c "Set :ShuttleXChannel $CHANNEL" Resources/Info.plist 2>/dev/null \
+            || /usr/libexec/PlistBuddy -c "Add :ShuttleXChannel string $CHANNEL" Resources/Info.plist
+          echo "Release channel: $CHANNEL"
       - name: Build (arm64)
         run: ./build.sh
       - name: Package DMG

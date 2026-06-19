@@ -141,7 +141,7 @@ struct SettingsView: View {
                 Text("When on, ShuttleX checks the public GitHub Releases API (no account, no tracking) at most once a day and shows a hint in the menu. Off by default.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
-                LabeledContent("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "–")
+                LabeledContent("Version", value: AppInfo.displayVersion)
             }
         }
         .formStyle(.grouped)

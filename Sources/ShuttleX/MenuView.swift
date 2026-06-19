@@ -77,6 +77,15 @@ struct MenuView: View {
                 )
             Text("ShuttleX")
                 .font(.system(size: 14, weight: .semibold))
+            if AppInfo.isPrerelease {
+                Text(AppInfo.channel.uppercased())
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(.orange, in: Capsule())
+                    .help("You're running a \(AppInfo.channel) build (\(AppInfo.version)), not the stable release.")
+            }
             Spacer()
             Text(state.source.label)
                 .font(.system(size: 10, weight: .medium))
