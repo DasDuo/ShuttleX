@@ -1,3 +1,4 @@
+import KeyboardShortcuts
 import ServiceManagement
 import SwiftUI
 import UniformTypeIdentifiers
@@ -122,6 +123,11 @@ struct SettingsView: View {
             }
 
             Section("General") {
+                KeyboardShortcuts.Recorder("Global hotkey", name: .toggleShuttleX)
+                Text("Press this shortcut anywhere to open ShuttleX in the center of the screen; press it again to close. Click the field to record a combination, or clear it to disable.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+
                 Toggle("Launch at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, enabled in
                         toggleLaunchAtLogin(enabled)

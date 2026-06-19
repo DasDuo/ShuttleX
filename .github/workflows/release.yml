@@ -12,47 +12,66 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v5
+      - name: Determine version
+        run: |
+          # Tag may be a stable "v1.11.0" or a prerelease "v1.11.0-beta.1".
+          # BASE_VERSION strips the prerelease suffix and is what Info.plist /
+          # CHANGELOG / the cask are keyed on.
+          VERSION="${GITHUB_REF_NAME#v}"
+          BASE_VERSION="${VERSION%%-*}"
+          if [ "$VERSION" != "$BASE_VERSION" ]; then IS_PRERELEASE=true; else IS_PRERELEASE=false; fi
+          {
+            echo "VERSION=$VERSION"
+            echo "BASE_VERSION=$BASE_VERSION"
+            echo "IS_PRERELEASE=$IS_PRERELEASE"
+          } >> "$GITHUB_ENV"
+          echo "Tag $GITHUB_REF_NAME → base $BASE_VERSION, prerelease=$IS_PRERELEASE"
       - name: Verify release metadata
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
           PLIST_VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" Resources/Info.plist)
-          if [ "$PLIST_VERSION" != "$VERSION" ]; then
-            echo "::error::Info.plist version ($PLIST_VERSION) does not match tag ($VERSION) — bump CFBundleShortVersionString."
+          if [ "$PLIST_VERSION" != "$BASE_VERSION" ]; then
+            echo "::error::Info.plist version ($PLIST_VERSION) does not match tag base ($BASE_VERSION) — bump CFBundleShortVersionString."
             exit 1
           fi
-          if ! grep -qF "## [$VERSION]" CHANGELOG.md; then
-            echo "::error::CHANGELOG.md has no entry for $VERSION (expected a '## [$VERSION]' section) — add it before tagging."
+          if ! grep -qF "## [$BASE_VERSION]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md has no entry for $BASE_VERSION (expected a '## [$BASE_VERSION]' section) — add it before tagging."
             exit 1
           fi
-          echo "OK: version $VERSION matches Info.plist and has a CHANGELOG entry."
+          echo "OK: version $BASE_VERSION matches Info.plist and has a CHANGELOG entry."
       - name: Build (arm64)
         run: ./build.sh
       - name: Package DMG
         run: ./make-dmg.sh
       - name: Extract release notes from CHANGELOG
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          awk -v ver="## [$VERSION]" '
+          awk -v ver="## [$BASE_VERSION]" '
             index($0, ver) == 1 { flag = 1; next }
             /^## \[/ { if (flag) exit }
             flag { print }
           ' CHANGELOG.md > RELEASE_NOTES.md
-          [ -s RELEASE_NOTES.md ] || echo "Release $VERSION" > RELEASE_NOTES.md
+          [ -s RELEASE_NOTES.md ] || echo "Release $BASE_VERSION" > RELEASE_NOTES.md
           echo "---- release notes ----"; cat RELEASE_NOTES.md
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" ShuttleX-*-arm64.dmg ShuttleX-*-arm64.zip --title "ShuttleX $GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md
+        run: |
+          ARGS=(--title "ShuttleX $GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md)
+          if [ "$IS_PRERELEASE" = "true" ]; then ARGS+=(--prerelease); fi
+          gh release create "$GITHUB_REF_NAME" ShuttleX-*-arm64.dmg ShuttleX-*-arm64.zip "${ARGS[@]}"
       - name: Update Homebrew cask
         continue-on-error: true   # release is already published; a cask hiccup shouldn't fail it
         env:
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
+          if [ "$IS_PRERELEASE" = "true" ]; then
+            echo "Prerelease ($VERSION) — leaving the stable Homebrew cask untouched."
+            exit 0
+          fi
           if [ -z "$HOMEBREW_TAP_TOKEN" ]; then
             echo "HOMEBREW_TAP_TOKEN not set — skipping cask update. See RELEASING.md to enable it."
             exit 0
           fi
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${BASE_VERSION}"
           SHA=$(shasum -a 256 "ShuttleX-${VERSION}-arm64.dmg" | awk '{print $1}')
           git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/DasDuo/homebrew-tap.git" tap
           cd tap

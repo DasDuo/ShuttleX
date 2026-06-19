@@ -2,7 +2,11 @@ import SwiftUI
 
 struct MenuView: View {
     @Environment(AppState.self) private var state
-    @Environment(\.openSettings) private var openSettings
+
+    /// Closes the hosting Spotlight panel.
+    var onDismiss: () -> Void = {}
+    /// Opens the Settings window (and closes the panel).
+    var onOpenSettings: () -> Void = {}
 
     @State private var query = ""
     @State private var expandedGroups: Set<String> = []
@@ -51,7 +55,11 @@ struct MenuView: View {
         .onAppear {
             state.reload()
             state.maybeCheckForUpdates()
-            searchFocused = true
+            // Defer focus until the panel is the key window; setting it synchronously
+            // can run before the window becomes key, which drops the focus.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                searchFocused = true
+            }
         }
     }
 
@@ -84,9 +92,7 @@ struct MenuView: View {
             .buttonStyle(.borderless)
             .help("Reload")
             Button {
-                dismissMenuWindow()
-                NSApp.activate(ignoringOtherApps: true)
-                openSettings()
+                onOpenSettings()
             } label: {
                 Image(systemName: "gearshape")
             }
@@ -192,7 +198,7 @@ struct MenuView: View {
 
     private func updateBanner(_ version: String) -> some View {
         Button {
-            dismissMenuWindow()
+            onDismiss()
             NSWorkspace.shared.open(UpdateCheck.releasesURL)
         } label: {
             HStack(spacing: 6) {
@@ -277,7 +283,7 @@ struct MenuView: View {
     // MARK: - Actions
 
     private func connect(_ host: SSHHost) {
-        dismissMenuWindow()
+        onDismiss()
         state.connect(host)
         query = ""
         selectedID = nil
@@ -337,15 +343,6 @@ struct MenuView: View {
             } else {
                 expandedGroups.insert(group.name)
             }
-        }
-    }
-
-    // Closes the MenuBarExtra popover. SwiftUI exposes no API to dismiss it, so we
-    // match it by its internal window class name. This is a known fragility — if a
-    // future macOS renames the class, the popover simply won't auto-close (cosmetic).
-    private func dismissMenuWindow() {
-        for window in NSApp.windows where window.className.contains("MenuBarExtra") {
-            window.close()
         }
     }
 }
