@@ -36,7 +36,14 @@ enum JSONHostStore {
         .appendingPathComponent(".config/shuttlex/servers.json")
 
     static func load(from url: URL, defaultUser: String = "") throws -> [HostGroup] {
-        let data = try Data(contentsOf: url)
+        try decode(Data(contentsOf: url), defaultUser: defaultUser)
+    }
+
+    /// Builds groups from raw JSON. `allowCommands: false` strips the `command`
+    /// and `remoteCommand` fields — used for remote sources, which provide
+    /// inventory only (groups/names/host/port) and never executable commands.
+    static func decode(_ data: Data, defaultUser: String = "", allowCommands: Bool = true,
+                       userOverrides: [String: String] = [:], favoriteKeys: Set<String> = []) throws -> [HostGroup] {
         let file = try JSONDecoder().decode(File.self, from: data)
 
         // Merge groups that share a name (e.g. from hand-edited JSON) so group
@@ -50,33 +57,39 @@ enum JSONHostStore {
         }
 
         if let ungrouped = file.hosts, !ungrouped.isEmpty {
-            add("Servers", ungrouped.map { makeHost($0, defaultUser: defaultUser) })
+            add("Servers", ungrouped.map { makeHost($0, defaultUser: defaultUser, allowCommands: allowCommands, userOverrides: userOverrides, favoriteKeys: favoriteKeys) })
         }
         for group in file.groups ?? [] {
-            add(group.name, group.hosts.map { makeHost($0, defaultUser: defaultUser) })
+            add(group.name, group.hosts.map { makeHost($0, defaultUser: defaultUser, allowCommands: allowCommands, userOverrides: userOverrides, favoriteKeys: favoriteKeys) })
         }
         return order.map { HostGroup(name: $0, hosts: hostsByName[$0]!) }
     }
 
-    /// Resolves the effective login user: an entry's own user wins; otherwise the
-    /// global `defaultUser` is used; if neither is set, none (`ssh host`).
-    private static func effectiveUser(_ entry: Entry, defaultUser: String) -> String? {
+    /// Resolves the effective login user: a local `override` wins, then an
+    /// entry's own user, then the global `defaultUser`; if none is set, none.
+    private static func effectiveUser(_ entry: Entry, defaultUser: String, override: String?) -> String? {
+        if let over = override?.trimmingCharacters(in: .whitespaces), !over.isEmpty { return over }
         if let own = entry.user?.trimmingCharacters(in: .whitespaces), !own.isEmpty { return own }
         let fallback = defaultUser.trimmingCharacters(in: .whitespaces)
         return fallback.isEmpty ? nil : fallback
     }
 
-    private static func makeHost(_ entry: Entry, defaultUser: String = "") -> SSHHost {
-        let favorite = entry.favorite ?? false
-        // A raw command takes over completely.
-        if let command = entry.command, !command.isEmpty {
-            return SSHHost(name: entry.name, detail: command, command: command, favorite: favorite)
+    private static func makeHost(_ entry: Entry, defaultUser: String = "", allowCommands: Bool = true,
+                                 userOverrides: [String: String] = [:], favoriteKeys: Set<String> = []) -> SSHHost {
+        // A raw command takes over completely — but never from a remote source.
+        if allowCommands, let command = entry.command, !command.isEmpty {
+            return SSHHost(name: entry.name, detail: command, command: command, favorite: entry.favorite ?? false)
         }
 
         let host = entry.host ?? entry.name
-        let user = effectiveUser(entry, defaultUser: defaultUser)
+        let serverKey = RemoteUserOverrides.key(host: host, port: entry.port)
+        let override = userOverrides[serverKey]
+        // A favorite comes from the JSON entry (local source) or the local
+        // per-person favorites set (remote source).
+        let favorite = (entry.favorite ?? false) || favoriteKeys.contains(serverKey)
+        let user = effectiveUser(entry, defaultUser: defaultUser, override: override)
         let target = user.map { "\($0)@\(host)" } ?? host
-        let remote = entry.remoteCommand.flatMap { $0.isEmpty ? nil : $0 }
+        let remote = allowCommands ? entry.remoteCommand.flatMap { $0.isEmpty ? nil : $0 } : nil
 
         // Build `ssh [-t] [-p port] user@host [remote-command]`. Everything is
         // shell-quoted so host/user/command values can't inject shell commands.
@@ -87,7 +100,8 @@ enum JSONHostStore {
         if let remote { parts.append(Shell.quote(remote)) }
 
         let detail = remote.map { "\(target): \($0)" } ?? target
-        return SSHHost(name: entry.name, detail: detail, command: parts.joined(separator: " "), favorite: favorite)
+        return SSHHost(name: entry.name, detail: detail, command: parts.joined(separator: " "),
+                       favorite: favorite, favoriteKey: serverKey)
     }
 
     /// Writes the JSON file nicely formatted. By default it snapshots the previous

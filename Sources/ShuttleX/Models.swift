@@ -7,6 +7,9 @@ struct SSHHost: Identifiable, Hashable {
     let detail: String?
     let command: String
     var favorite = false
+    /// Stable host:port key for local (per-person) favorites on the remote
+    /// source. `nil` for sources that store favorites another way (JSON file).
+    var favoriteKey: String? = nil
 
     var id: String { name + "|" + command }
 }
@@ -21,6 +24,7 @@ struct HostGroup: Identifiable {
 enum HostSource: String, CaseIterable, Identifiable {
     case sshConfig
     case json
+    case remoteJSON
 
     var id: String { rawValue }
 
@@ -28,6 +32,7 @@ enum HostSource: String, CaseIterable, Identifiable {
         switch self {
         case .sshConfig: return "~/.ssh/config"
         case .json: return "JSON file"
+        case .remoteJSON: return "Remote URL"
         }
     }
 }

@@ -30,10 +30,18 @@ struct MenuView: View {
     /// when not searching and there are favorites), then the normal groups.
     private var displayGroups: [HostGroup] {
         let base = filteredGroups
-        guard query.isEmpty, state.source == .json else { return base }
+        guard query.isEmpty, state.source != .sshConfig else { return base }
         let favorites = state.groups.flatMap(\.hosts).filter(\.favorite)
         guard !favorites.isEmpty else { return base }
         return [HostGroup(name: favoritesGroupName, hosts: favorites)] + base
+    }
+
+    private var emptyStateHint: String {
+        switch state.source {
+        case .sshConfig: return "Add hosts to ~/.ssh/config."
+        case .json: return "Edit the JSON file in Settings."
+        case .remoteJSON: return "Set a remote URL in Settings."
+        }
     }
 
     var body: some View {
@@ -158,7 +166,7 @@ struct MenuView: View {
                                     HostRow(
                                         host: host,
                                         selected: host.id == selectedID,
-                                        canFavorite: state.source == .json,
+                                        canFavorite: state.source != .sshConfig,
                                         onToggleFavorite: { state.toggleFavorite(host) }
                                     ) {
                                         connect(host)
@@ -193,9 +201,7 @@ struct MenuView: View {
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.secondary)
             if query.isEmpty {
-                Text(state.source == .sshConfig
-                    ? "Add hosts to ~/.ssh/config."
-                    : "Edit the JSON file in Settings.")
+                Text(emptyStateHint)
                     .font(.system(size: 11))
                     .foregroundStyle(.tertiary)
                     .multilineTextAlignment(.center)

