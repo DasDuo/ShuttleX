@@ -126,6 +126,31 @@ private func makeTempDir() -> URL {
     #expect(hosts[2].command == "ssh 'deploy@web01'") // no remote command → plain connect
 }
 
+@Test func jsonAppliesDefaultUserUnlessOverridden() throws {
+    let dir = makeTempDir(); defer { try? FileManager.default.removeItem(at: dir) }
+    let url = dir.appendingPathComponent("servers.json")
+    let file = JSONHostStore.File(
+        groups: [.init(name: "g", hosts: [
+            .init(name: "inherits", host: "web01", user: nil, port: nil, command: nil, remoteCommand: nil),
+            .init(name: "override", host: "web02", user: "root", port: nil, command: nil, remoteCommand: nil),
+            .init(name: "raw", host: nil, user: nil, port: nil, command: "ssh -J jump h", remoteCommand: nil),
+        ])],
+        hosts: nil
+    )
+    try JSONHostStore.write(file, to: url)
+
+    // No default user → an entry without a user connects without one.
+    let plain = try JSONHostStore.load(from: url).first!.hosts
+    #expect(plain[0].command == "ssh 'web01'")
+
+    // A default user fills in only where no explicit user is set; an explicit
+    // user wins and a raw command is left untouched.
+    let withDefault = try JSONHostStore.load(from: url, defaultUser: "deploy").first!.hosts
+    #expect(withDefault[0].command == "ssh 'deploy@web01'")
+    #expect(withDefault[1].command == "ssh 'root@web02'")
+    #expect(withDefault[2].command == "ssh -J jump h")
+}
+
 @Test func favoritesPersistAndToggle() throws {
     let dir = makeTempDir(); defer { try? FileManager.default.removeItem(at: dir) }
     let url = dir.appendingPathComponent("servers.json")

@@ -67,6 +67,10 @@ struct SettingsView: View {
                             .textSelection(.enabled)
                     }
                     LabeledContent("Hosts found", value: "\(state.hostCount)")
+                    TextField("Default user", text: $state.defaultUser, prompt: Text("none"))
+                    Text("Used for servers that don't set their own user. You can override it per server in the editor.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
                     HStack {
                         Button("Add / edit servers…") { showEditor = true }
                             .buttonStyle(.borderedProminent)

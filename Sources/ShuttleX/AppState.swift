@@ -26,6 +26,15 @@ final class AppState {
         }
     }
 
+    /// A default SSH user applied to servers that don't specify their own
+    /// (JSON source). Empty = no default. Per-server users override it.
+    var defaultUser: String {
+        didSet {
+            UserDefaults.standard.set(defaultUser, forKey: "defaultUser")
+            reload()
+        }
+    }
+
     /// The mode actually used — falls back to "new window" when the selected
     /// terminal app doesn't support the chosen mode.
     var effectiveLaunchMode: LaunchMode {
@@ -82,6 +91,7 @@ final class AppState {
             terminal = .terminal
         }
         launchMode = defaults.string(forKey: "launchMode").flatMap(LaunchMode.init) ?? .newWindow
+        defaultUser = defaults.string(forKey: "defaultUser") ?? ""
         checkForUpdates = defaults.bool(forKey: "checkForUpdates") // default false
         reload()
         maybeCheckForUpdates()
@@ -125,7 +135,7 @@ final class AppState {
             // Archive the current version (captures manual edits made outside the app).
             if existedBefore { JSONHostStore.snapshotIfChanged(url) }
             do {
-                groups = try JSONHostStore.load(from: url)
+                groups = try JSONHostStore.load(from: url, defaultUser: defaultUser)
             } catch {
                 groups = []
                 lastError = "Invalid JSON file: \(error.localizedDescription)"
@@ -137,7 +147,7 @@ final class AppState {
     /// JSON entry without a backup snapshot and reloads.
     func toggleFavorite(_ host: SSHHost) {
         guard source == .json else { return }
-        let file = JSONHostStore.togglingFavorite(in: JSONHostStore.loadFile(from: jsonURL), host: host)
+        let file = JSONHostStore.togglingFavorite(in: JSONHostStore.loadFile(from: jsonURL), host: host, defaultUser: defaultUser)
         do {
             try JSONHostStore.write(file, to: jsonURL, snapshot: false)
             reload()

@@ -35,7 +35,7 @@ enum JSONHostStore {
     static let defaultURL = FileManager.default.homeDirectoryForCurrentUser
         .appendingPathComponent(".config/shuttlex/servers.json")
 
-    static func load(from url: URL) throws -> [HostGroup] {
+    static func load(from url: URL, defaultUser: String = "") throws -> [HostGroup] {
         let data = try Data(contentsOf: url)
         let file = try JSONDecoder().decode(File.self, from: data)
 
@@ -50,15 +50,23 @@ enum JSONHostStore {
         }
 
         if let ungrouped = file.hosts, !ungrouped.isEmpty {
-            add("Servers", ungrouped.map(makeHost))
+            add("Servers", ungrouped.map { makeHost($0, defaultUser: defaultUser) })
         }
         for group in file.groups ?? [] {
-            add(group.name, group.hosts.map(makeHost))
+            add(group.name, group.hosts.map { makeHost($0, defaultUser: defaultUser) })
         }
         return order.map { HostGroup(name: $0, hosts: hostsByName[$0]!) }
     }
 
-    private static func makeHost(_ entry: Entry) -> SSHHost {
+    /// Resolves the effective login user: an entry's own user wins; otherwise the
+    /// global `defaultUser` is used; if neither is set, none (`ssh host`).
+    private static func effectiveUser(_ entry: Entry, defaultUser: String) -> String? {
+        if let own = entry.user?.trimmingCharacters(in: .whitespaces), !own.isEmpty { return own }
+        let fallback = defaultUser.trimmingCharacters(in: .whitespaces)
+        return fallback.isEmpty ? nil : fallback
+    }
+
+    private static func makeHost(_ entry: Entry, defaultUser: String = "") -> SSHHost {
         let favorite = entry.favorite ?? false
         // A raw command takes over completely.
         if let command = entry.command, !command.isEmpty {
@@ -66,7 +74,8 @@ enum JSONHostStore {
         }
 
         let host = entry.host ?? entry.name
-        let target = entry.user.map { "\($0)@\(host)" } ?? host
+        let user = effectiveUser(entry, defaultUser: defaultUser)
+        let target = user.map { "\($0)@\(host)" } ?? host
         let remote = entry.remoteCommand.flatMap { $0.isEmpty ? nil : $0 }
 
         // Build `ssh [-t] [-p port] user@host [remote-command]`. Everything is
@@ -98,10 +107,10 @@ enum JSONHostStore {
     /// Returns a copy of `file` with the favorite flag flipped on the entry that
     /// produces `host` (matched by the built command + name). `true` is stored as
     /// `true`, un-favoriting clears the field so the JSON stays clean.
-    static func togglingFavorite(in file: File, host: SSHHost) -> File {
+    static func togglingFavorite(in file: File, host: SSHHost, defaultUser: String = "") -> File {
         func flip(_ entries: [Entry]) -> [Entry] {
             entries.map { entry in
-                guard makeHost(entry).id == host.id else { return entry }
+                guard makeHost(entry, defaultUser: defaultUser).id == host.id else { return entry }
                 var copy = entry
                 copy.favorite = (entry.favorite == true) ? nil : true
                 return copy

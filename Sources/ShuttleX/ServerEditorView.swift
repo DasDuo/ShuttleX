@@ -29,7 +29,7 @@ struct ServerEditorView: View {
         .frame(width: 460, height: 560)
         .onAppear { file = JSONHostStore.loadFile(from: state.jsonURL) }
         .sheet(item: $form) { model in
-            EntryForm(model: model, existingGroups: groups.map(\.name)) { result in
+            EntryForm(model: model, existingGroups: groups.map(\.name), defaultUser: state.defaultUser) { result in
                 if let original = result.original {
                     file = ServerEditing.update(file, group: original.group, id: original.id,
                                                 to: result.entry, newGroup: result.group)
@@ -151,6 +151,7 @@ struct EntryForm: View {
         let id = UUID()
         var name = ""
         var group = ""
+        var useDefaultUser = true
         var user = ""
         var host = ""
         var port = ""
@@ -167,7 +168,9 @@ struct EntryForm: View {
         init(from entry: JSONHostStore.Entry, group: String) {
             name = entry.name
             self.group = group
-            user = entry.user ?? ""
+            let ownUser = entry.user?.trimmingCharacters(in: .whitespaces) ?? ""
+            useDefaultUser = ownUser.isEmpty
+            user = ownUser
             host = entry.host ?? ""
             port = entry.port.map(String.init) ?? ""
             remoteCommand = entry.remoteCommand ?? ""
@@ -186,12 +189,14 @@ struct EntryForm: View {
 
     @State private var model: Model
     let existingGroups: [String]
+    let defaultUser: String
     let onSave: (Result) -> Void
     @Environment(\.dismiss) private var dismiss
 
-    init(model: Model, existingGroups: [String], onSave: @escaping (Result) -> Void) {
+    init(model: Model, existingGroups: [String], defaultUser: String = "", onSave: @escaping (Result) -> Void) {
         _model = State(initialValue: model)
         self.existingGroups = existingGroups
+        self.defaultUser = defaultUser
         self.onSave = onSave
     }
 
@@ -205,7 +210,7 @@ struct EntryForm: View {
             let host = model.host.trimmingCharacters(in: .whitespaces)
             if host.isEmpty { return "Host or IP is required." }
             if !HostValidation.isSafe(host) { return "Host contains invalid characters." }
-            if !HostValidation.isSafe(model.user) { return "User contains invalid characters." }
+            if !model.useDefaultUser, !HostValidation.isSafe(model.user) { return "User contains invalid characters." }
             if !model.port.isEmpty, Int(model.port) == nil { return "Port must be a number." }
         }
         return nil
@@ -242,7 +247,16 @@ struct EntryForm: View {
                     }
                 } else {
                     Section("Connection") {
-                        TextField("User", text: $model.user)
+                        Toggle("Use default user", isOn: $model.useDefaultUser)
+                        if model.useDefaultUser {
+                            Text(defaultUser.isEmpty
+                                ? "No default user set — connects without a user. Set one in Settings → Server source."
+                                : "Uses the default user “\(defaultUser)” from Settings.")
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                        } else {
+                            TextField("User", text: $model.user)
+                        }
                         TextField("Host or IP", text: $model.host)
                         TextField("Port (optional)", text: $model.port)
                         TextField("Remote command (optional)", text: $model.remoteCommand)
@@ -286,7 +300,7 @@ struct EntryForm: View {
                 remoteCommand: nil, favorite: favorite
             )
         } else {
-            let user = model.user.trimmingCharacters(in: .whitespaces)
+            let user = model.useDefaultUser ? "" : model.user.trimmingCharacters(in: .whitespaces)
             let remote = model.remoteCommand.trimmingCharacters(in: .whitespaces)
             entry = JSONHostStore.Entry(
                 name: name,
