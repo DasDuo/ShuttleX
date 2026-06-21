@@ -145,7 +145,9 @@ struct SettingsView: View {
             }
 
             Section("General") {
-                KeyboardShortcuts.Recorder("Global hotkey", name: .toggleShuttleX)
+                LabeledContent("Global hotkey") {
+                    HotkeyRecorder(name: .toggleShuttleX)
+                }
                 Text("Press this shortcut anywhere to open ShuttleX in the center of the screen; press it again to close. Click the field to record a combination, or clear it to disable.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
