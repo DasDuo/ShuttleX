@@ -23,6 +23,13 @@ fi
 cp "$ICON" "$APP/Contents/Resources/AppIcon.icns"
 echo "Icon: $ICON (channel: $CHANNEL)"
 
+# Bundle SPM package resources (e.g. KeyboardShortcuts) into the app, so each
+# package's `Bundle.module` resolves at runtime. Without this the app crashes
+# when such code runs (e.g. opening Settings → the hotkey recorder).
+for b in .build/arm64-apple-macosx/release/*.bundle; do
+    [ -e "$b" ] && cp -R "$b" "$APP/Contents/Resources/"
+done
+
 codesign --force --sign - "$APP"
 
 VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" "$APP/Contents/Info.plist")

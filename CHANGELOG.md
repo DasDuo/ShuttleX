@@ -4,6 +4,11 @@ All notable changes to ShuttleX are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.1] - 2026-06-22
+
+### Fixed
+- The app crashed when opening Settings (the global-hotkey recorder couldn't find its resources). SPM package resource bundles (`KeyboardShortcuts`) are now bundled into the app, so `Bundle.module` resolves at runtime.
+
 ## [1.11.0] - 2026-06-22
 
 ### Added
@@ -162,6 +167,7 @@ All notable changes to ShuttleX are documented here. The format is based on
 ### Added
 - Initial release. A menu-bar SSH launcher built with SwiftUI (`MenuBarExtra`), pure arm64 for Apple Silicon. Hosts from `~/.ssh/config` or a JSON file; choose your terminal (Terminal, iTerm2, Ghostty, Warp, Alacritty, kitty, WezTerm); open in a new window, tab, or split.
 
+[1.11.1]: https://github.com/DasDuo/ShuttleX/compare/v1.11.0...v1.11.1
 [1.11.0]: https://github.com/DasDuo/ShuttleX/compare/v1.10.0...v1.11.0
 [1.10.0]: https://github.com/DasDuo/ShuttleX/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/DasDuo/ShuttleX/compare/v1.8.0...v1.9.0
