@@ -4,6 +4,17 @@ All notable changes to ShuttleX are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0] - 2026-06-20
+
+### Added
+- **Global hotkey** (configurable in Settings → General, off by default): press it from anywhere to open ShuttleX as a centered, Spotlight-style search window — the search field is focused, type to filter, **↑/↓** to pick, **Enter** to connect, **Esc** to dismiss. Press it again to close.
+- **Remote server source** (Settings → Server source → **Remote URL**): load a read-only server list from an `https://` URL — a shared "single source of truth" for a team. Inventory only (groups, names, host, port); any commands in the file are ignored for safety, and the list is cached locally so the menu still works offline.
+- **Default SSH user** (JSON and remote sources): a global default login user for entries that don't set their own, with a "Use default user" toggle per server in the editor.
+- **Personal, local overrides for the remote source**: set your own **login user** and **favorites** per server. They're stored locally (keyed by host:port), so they're personal to you and survive remote reloads — managed in a consistent "Edit servers…" editor.
+
+### Changed
+- The menu is now a standalone panel instead of a `MenuBarExtra` popover, which is what makes the programmatic/hotkey open possible. Clicking the menu-bar icon still shows the familiar dropdown **anchored under the icon** (the original Shuttle/SSHMenu feel); the global hotkey is an additional power-user layer that opens the same panel centered on screen.
+
 ## [1.10.0] - 2026-06-18
 
 ### Added
@@ -151,6 +162,7 @@ All notable changes to ShuttleX are documented here. The format is based on
 ### Added
 - Initial release. A menu-bar SSH launcher built with SwiftUI (`MenuBarExtra`), pure arm64 for Apple Silicon. Hosts from `~/.ssh/config` or a JSON file; choose your terminal (Terminal, iTerm2, Ghostty, Warp, Alacritty, kitty, WezTerm); open in a new window, tab, or split.
 
+[1.11.0]: https://github.com/DasDuo/ShuttleX/compare/v1.10.0...v1.11.0
 [1.10.0]: https://github.com/DasDuo/ShuttleX/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/DasDuo/ShuttleX/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/DasDuo/ShuttleX/compare/v1.7.2...v1.8.0

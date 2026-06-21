@@ -1,0 +1,22 @@
+{
+  "groups": [
+    {
+      "name": "Production",
+      "hosts": [
+        { "name": "Web 1", "host": "web1.prod.example.com" },
+        { "name": "Web 2", "host": "web2.prod.example.com" },
+        { "name": "Database", "host": "db.prod.example.com", "port": 2222 }
+      ]
+    },
+    {
+      "name": "Staging",
+      "hosts": [
+        { "name": "Web", "host": "web.staging.example.com" },
+        { "name": "Database", "host": "db.staging.example.com" }
+      ]
+    }
+  ],
+  "hosts": [
+    { "name": "Bastion", "host": "bastion.example.com" }
+  ]
+}

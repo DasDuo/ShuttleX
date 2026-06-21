@@ -22,6 +22,26 @@ The **Release** workflow (`.github/workflows/release.yml`) does the rest.
 3. **Release** — creates the GitHub Release, using the matching CHANGELOG section as the notes.
 4. **Homebrew cask** — bumps `version` + `sha256` in `DasDuo/homebrew-tap` (`Casks/shuttlex.rb`) and pushes — **only if** the `HOMEBREW_TAP_TOKEN` secret is set (otherwise it skips, and the release still succeeds).
 
+## Beta / prerelease channel
+
+For risky changes (e.g. an architecture rework) you can ship a **prerelease** that power users opt into manually, without touching the stable Homebrew cask.
+
+A tag with a SemVer prerelease suffix — `vX.Y.Z-beta.N` — is detected automatically. The workflow then keys the guard, notes and artifacts on the **base** version `X.Y.Z` (so `Info.plist` and the `## [X.Y.Z]` CHANGELOG section stay normal), but:
+
+- marks the GitHub Release as a **prerelease** (`--prerelease`), and
+- **skips the Homebrew cask bump entirely** — stable `brew` users are unaffected.
+
+Cut one from the branch that holds the work (e.g. `alpha`):
+
+```sh
+# Info.plist already at the target X.Y.Z and CHANGELOG has its ## [X.Y.Z] section.
+git tag vX.Y.Z-beta.1 && git push origin vX.Y.Z-beta.1
+```
+
+Testers install the prerelease by downloading its `.dmg`/`.zip` from the Releases page (Homebrew only ever sees stable). When the beta has proven itself, merge to `main` and tag the **stable** `vX.Y.Z` — that one bumps the cask as usual.
+
+> Note: the prerelease build still reports `CFBundleShortVersionString = X.Y.Z`, so the in-app update check won't nudge a beta tester from `X.Y.Z-beta.N` to the final `X.Y.Z` (same number). That's fine for a short-lived beta; tell testers to grab stable, or just merge soon.
+
 ## One-time setup: Homebrew cask automation
 
 The cask is in a **separate repo** (`DasDuo/homebrew-tap`), so the default `GITHUB_TOKEN` can't push to it. Provide a token once:

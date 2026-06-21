@@ -1,3 +1,4 @@
+import KeyboardShortcuts
 import ServiceManagement
 import SwiftUI
 import UniformTypeIdentifiers
@@ -9,6 +10,7 @@ struct SettingsView: View {
     @State private var parseResult: TableImporter.ParseResult?
     @State private var importError: String?
     @State private var showEditor = false
+    @State private var showRemoteEditor = false
 
     var body: some View {
         @Bindable var state = state
@@ -66,6 +68,10 @@ struct SettingsView: View {
                             .textSelection(.enabled)
                     }
                     LabeledContent("Hosts found", value: "\(state.hostCount)")
+                    TextField("Default user", text: $state.defaultUser, prompt: Text("none"))
+                    Text("Used for servers that don't set their own user. You can override it per server in the editor.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
                     HStack {
                         Button("Add / edit servers…") { showEditor = true }
                             .buttonStyle(.borderedProminent)
@@ -92,6 +98,23 @@ struct SettingsView: View {
                         }
                     }
                     Text("The last 3 versions are kept as backups next to the file (e.g. servers.backup-…json) on every change — whether edited manually or imported.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+
+                case .remoteJSON:
+                    TextField("Remote URL", text: $state.remoteURL, prompt: Text("https://…"))
+                    LabeledContent("Hosts found", value: "\(state.hostCount)")
+                    if let updated = state.remoteLastUpdated {
+                        LabeledContent("Last updated", value: updated.formatted(date: .abbreviated, time: .shortened))
+                    }
+                    TextField("Default user", text: $state.defaultUser, prompt: Text("none"))
+                    HStack {
+                        Button("Edit servers…") { showRemoteEditor = true }
+                            .buttonStyle(.borderedProminent)
+                        Spacer()
+                        Button("Reload") { state.reload() }
+                    }
+                    Text("Loads a read-only server list from an https:// URL — a shared “single source of truth” for a team. Only inventory is used (groups, names, host, port); any commands in the file are ignored for safety. The login user comes from the default user above, or a per-server user you set locally (kept across reloads).")
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 }
@@ -122,6 +145,11 @@ struct SettingsView: View {
             }
 
             Section("General") {
+                KeyboardShortcuts.Recorder("Global hotkey", name: .toggleShuttleX)
+                Text("Press this shortcut anywhere to open ShuttleX in the center of the screen; press it again to close. Click the field to record a combination, or clear it to disable.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+
                 Toggle("Launch at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, enabled in
                         toggleLaunchAtLogin(enabled)
@@ -135,7 +163,7 @@ struct SettingsView: View {
                 Text("When on, ShuttleX checks the public GitHub Releases API (no account, no tracking) at most once a day and shows a hint in the menu. Off by default.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
-                LabeledContent("Version", value: Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "–")
+                LabeledContent("Version", value: AppInfo.displayVersion)
             }
         }
         .formStyle(.grouped)
@@ -147,6 +175,9 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $showEditor) {
             ServerEditorView(state: state)
+        }
+        .sheet(isPresented: $showRemoteEditor) {
+            RemoteEditorView(state: state)
         }
     }
 

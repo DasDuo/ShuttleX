@@ -2,7 +2,11 @@ import SwiftUI
 
 struct MenuView: View {
     @Environment(AppState.self) private var state
-    @Environment(\.openSettings) private var openSettings
+
+    /// Closes the hosting Spotlight panel.
+    var onDismiss: () -> Void = {}
+    /// Opens the Settings window (and closes the panel).
+    var onOpenSettings: () -> Void = {}
 
     @State private var query = ""
     @State private var expandedGroups: Set<String> = []
@@ -26,10 +30,18 @@ struct MenuView: View {
     /// when not searching and there are favorites), then the normal groups.
     private var displayGroups: [HostGroup] {
         let base = filteredGroups
-        guard query.isEmpty, state.source == .json else { return base }
+        guard query.isEmpty, state.source != .sshConfig else { return base }
         let favorites = state.groups.flatMap(\.hosts).filter(\.favorite)
         guard !favorites.isEmpty else { return base }
         return [HostGroup(name: favoritesGroupName, hosts: favorites)] + base
+    }
+
+    private var emptyStateHint: String {
+        switch state.source {
+        case .sshConfig: return "Add hosts to ~/.ssh/config."
+        case .json: return "Edit the JSON file in Settings."
+        case .remoteJSON: return "Set a remote URL in Settings."
+        }
     }
 
     var body: some View {
@@ -51,7 +63,11 @@ struct MenuView: View {
         .onAppear {
             state.reload()
             state.maybeCheckForUpdates()
-            searchFocused = true
+            // Defer focus until the panel is the key window; setting it synchronously
+            // can run before the window becomes key, which drops the focus.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                searchFocused = true
+            }
         }
     }
 
@@ -69,6 +85,15 @@ struct MenuView: View {
                 )
             Text("ShuttleX")
                 .font(.system(size: 14, weight: .semibold))
+            if AppInfo.isPrerelease {
+                Text(AppInfo.channel.uppercased())
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(.orange, in: Capsule())
+                    .help("You're running a \(AppInfo.channel) build (\(AppInfo.version)), not the stable release.")
+            }
             Spacer()
             Text(state.source.label)
                 .font(.system(size: 10, weight: .medium))
@@ -84,9 +109,7 @@ struct MenuView: View {
             .buttonStyle(.borderless)
             .help("Reload")
             Button {
-                dismissMenuWindow()
-                NSApp.activate(ignoringOtherApps: true)
-                openSettings()
+                onOpenSettings()
             } label: {
                 Image(systemName: "gearshape")
             }
@@ -143,7 +166,7 @@ struct MenuView: View {
                                     HostRow(
                                         host: host,
                                         selected: host.id == selectedID,
-                                        canFavorite: state.source == .json,
+                                        canFavorite: state.source != .sshConfig,
                                         onToggleFavorite: { state.toggleFavorite(host) }
                                     ) {
                                         connect(host)
@@ -178,9 +201,7 @@ struct MenuView: View {
                 .font(.system(size: 13, weight: .medium))
                 .foregroundStyle(.secondary)
             if query.isEmpty {
-                Text(state.source == .sshConfig
-                    ? "Add hosts to ~/.ssh/config."
-                    : "Edit the JSON file in Settings.")
+                Text(emptyStateHint)
                     .font(.system(size: 11))
                     .foregroundStyle(.tertiary)
                     .multilineTextAlignment(.center)
@@ -192,7 +213,7 @@ struct MenuView: View {
 
     private func updateBanner(_ version: String) -> some View {
         Button {
-            dismissMenuWindow()
+            onDismiss()
             NSWorkspace.shared.open(UpdateCheck.releasesURL)
         } label: {
             HStack(spacing: 6) {
@@ -277,7 +298,7 @@ struct MenuView: View {
     // MARK: - Actions
 
     private func connect(_ host: SSHHost) {
-        dismissMenuWindow()
+        onDismiss()
         state.connect(host)
         query = ""
         selectedID = nil
@@ -337,15 +358,6 @@ struct MenuView: View {
             } else {
                 expandedGroups.insert(group.name)
             }
-        }
-    }
-
-    // Closes the MenuBarExtra popover. SwiftUI exposes no API to dismiss it, so we
-    // match it by its internal window class name. This is a known fragility — if a
-    // future macOS renames the class, the popover simply won't auto-close (cosmetic).
-    private func dismissMenuWindow() {
-        for window in NSApp.windows where window.className.contains("MenuBarExtra") {
-            window.close()
         }
     }
 }

