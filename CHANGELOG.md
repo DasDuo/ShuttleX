@@ -4,7 +4,7 @@ All notable changes to ShuttleX are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.11.0] - 2026-06-20
+## [1.11.0] - 2026-06-22
 
 ### Added
 - **Global hotkey** (configurable in Settings → General, off by default): press it from anywhere to open ShuttleX as a centered, Spotlight-style search window — the search field is focused, type to filter, **↑/↓** to pick, **Enter** to connect, **Esc** to dismiss. Press it again to close.

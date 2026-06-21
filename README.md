@@ -1,10 +1,8 @@
 # ShuttleX
 
 > 💬 **Help shape ShuttleX** — vote on what to build next in the [feature poll](https://github.com/DasDuo/ShuttleX/discussions/1).
->
-> 🧪 **Beta available** — try the upcoming **global hotkey** and **remote (team) server source** in [`v1.11.0-beta.3`](https://github.com/DasDuo/ShuttleX/releases/tag/v1.11.0-beta.3) (a prerelease; Homebrew stays on stable). Details & feedback: the [beta announcement](https://github.com/DasDuo/ShuttleX/discussions/2).
 
-A modern SSH launcher for the macOS menu bar — inspired by the original [SSHMenu](https://sshmenu.sourceforge.net) and by [Shuttle](https://github.com/fitztrev/shuttle), rebuilt with SwiftUI (`MenuBarExtra`, `@Observable`). Pure **arm64** binary for Apple Silicon, not a universal app.
+A modern SSH launcher for the macOS menu bar — inspired by the original [SSHMenu](https://sshmenu.sourceforge.net) and by [Shuttle](https://github.com/fitztrev/shuttle), rebuilt with SwiftUI (`@Observable`) on a custom `NSPanel`. Pure **arm64** binary for Apple Silicon, not a universal app.
 
 <p align="center">
   <img src="docs/screenshots/menu.png" alt="ShuttleX menu bar dropdown with searchable, collapsible server groups" width="340" valign="top">
@@ -20,6 +18,7 @@ A modern SSH launcher for the macOS menu bar — inspired by the original [SSHMe
 - **Switchable server source** (Settings → Server source):
   - `~/.ssh/config` — hosts are read directly (including `Include` directives; wildcard hosts like `*` are ignored)
   - JSON file at `~/.config/shuttlex/servers.json` (created with sample entries the first time you switch to it). The path is configurable in Settings, and the last 3 versions are kept as backups next to the file (`servers.backup-…json`) on every change — manual or imported
+  - **Remote URL** — a read-only server list loaded from an `https://` URL: a shared "single source of truth" for a team. Inventory only (groups, names, host, port; commands are ignored for safety), cached locally for offline use. Each person keeps their own login user and favorites locally
 - **Add, edit, delete and reorder servers in-app** (JSON source) — manage your connection list from a GUI in Settings → "Add / edit servers…" (drag to reorder within a group), no hand-editing of JSON required
 - **Run a command on a server**: give an entry a *remote command* (e.g. `htop`, `tail -f …`) and ShuttleX runs it over SSH with a TTY; or use a *raw custom command* for jump hosts/tunnels
 - **Favorites**: pin your most-used servers (hover the star in the menu, or toggle it in the editor) to a collapsible **★ Favorites** section at the top of the dropdown
@@ -29,7 +28,9 @@ A modern SSH launcher for the macOS menu bar — inspired by the original [SSHMe
   - Terminal.app: window, tab (tab needs the Accessibility permission once, see Notes)
   - Ghostty, Warp, Alacritty, kitty, WezTerm: new windows only (can't be steered otherwise from outside; unsupported modes fall back to "new window" automatically)
   - When the terminal isn't running yet, a new window is always opened — tab/split only apply once a window exists
+- **Global hotkey** (configurable in Settings → General, off by default): press it from anywhere to open ShuttleX as a centered, Spotlight-style search window — type to filter, **↑/↓** to pick, **Enter** to connect, **Esc** to dismiss. Clicking the menu-bar icon still shows the familiar dropdown anchored under it
 - **Keyboard-friendly**: the search field is focused on open; type to filter, **↑/↓** to pick a result (the list scrolls to follow), and **Enter** to connect — the search clears afterwards
+- **Default SSH user** (JSON / remote sources): a global default login user for entries that don't set their own, overridable per server
 - Optional: launch at login (Settings → General)
 - **Optional update check** (off by default): enable it in Settings to get a hint in the menu when a newer release is on GitHub — it checks the public Releases API at most once a day (no account, no tracking) and links to the download; it never auto-installs
 
