@@ -108,6 +108,27 @@ private func makeTempDir() -> URL {
     #expect(groups.first?.hosts.first?.command == "ssh 'root@1.2.3.4; touch /tmp/x'")
 }
 
+@Test func ipv6HostsAreAllowedButShellMetacharsAreNot() throws {
+    // IPv6 — bracketed or bare — is legitimate and must pass validation.
+    #expect(HostValidation.isSafe("2001:db8::1"))
+    #expect(HostValidation.isSafe("[2001:db8::1]"))
+    #expect(HostValidation.isSafe("fe80::1%en0"))
+    // Genuine shell metacharacters / whitespace are still rejected.
+    #expect(!HostValidation.isSafe("1.2.3.4; rm -rf ~"))
+    #expect(!HostValidation.isSafe("a b"))
+    #expect(!HostValidation.isSafe("$(whoami)"))
+
+    // A bracketed IPv6 host builds a correctly shell-quoted ssh command.
+    let dir = makeTempDir(); defer { try? FileManager.default.removeItem(at: dir) }
+    let url = dir.appendingPathComponent("servers.json")
+    let file = JSONHostStore.File(groups: [.init(name: "g", hosts: [
+        .init(name: "v6", host: "[2001:db8::1]", user: "root", port: 2222, command: nil),
+    ])], hosts: nil)
+    try JSONHostStore.write(file, to: url)
+    let host = try JSONHostStore.load(from: url).first!.hosts.first!
+    #expect(host.command == "ssh -p 2222 'root@[2001:db8::1]'")
+}
+
 @Test func jsonBuildsRemoteCommandWithTTY() throws {
     let dir = makeTempDir(); defer { try? FileManager.default.removeItem(at: dir) }
     let url = dir.appendingPathComponent("servers.json")

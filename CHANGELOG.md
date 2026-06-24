@@ -4,6 +4,11 @@ All notable changes to ShuttleX are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.3] - 2026-06-22
+
+### Fixed
+- IPv6 addresses in bracket notation (e.g. `[2001:db8::1]`) were wrongly rejected by the in-app editor and table import. The character denylist treated `[` and `]` as unsafe (shell globbing) — but they pose no risk here: every connection target is shell-quoted when the `ssh` command is built, and *that* is the actual injection guard, not the denylist. Brackets are now allowed, so bracketed IPv6 hosts save and import correctly; genuine shell metacharacters and whitespace are still rejected.
+
 ## [1.11.2] - 2026-06-22
 
 ### Fixed
@@ -172,6 +177,7 @@ All notable changes to ShuttleX are documented here. The format is based on
 ### Added
 - Initial release. A menu-bar SSH launcher built with SwiftUI (`MenuBarExtra`), pure arm64 for Apple Silicon. Hosts from `~/.ssh/config` or a JSON file; choose your terminal (Terminal, iTerm2, Ghostty, Warp, Alacritty, kitty, WezTerm); open in a new window, tab, or split.
 
+[1.11.3]: https://github.com/DasDuo/ShuttleX/compare/v1.11.2...v1.11.3
 [1.11.2]: https://github.com/DasDuo/ShuttleX/compare/v1.11.1...v1.11.2
 [1.11.1]: https://github.com/DasDuo/ShuttleX/compare/v1.11.0...v1.11.1
 [1.11.0]: https://github.com/DasDuo/ShuttleX/compare/v1.10.0...v1.11.0
