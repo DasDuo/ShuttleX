@@ -6,6 +6,9 @@ All notable changes to ShuttleX are documented here. The format is based on
 
 ## [1.11.3] - 2026-06-22
 
+### Changed
+- The table-import preview now shows at most 50 servers (with a "Showing 50 of N" note) and renders lazily, so importing a large sheet (hundreds/thousands of rows) stays responsive. All rows are still imported — only the preview is capped.
+
 ### Fixed
 - IPv6 addresses in bracket notation (e.g. `[2001:db8::1]`) were wrongly rejected by the in-app editor and table import. The character denylist treated `[` and `]` as unsafe (shell globbing) — but they pose no risk here: every connection target is shell-quoted when the `ssh` command is built, and *that* is the actual injection guard, not the denylist. Brackets are now allowed, so bracketed IPv6 hosts save and import correctly; genuine shell metacharacters and whitespace are still rejected.
 

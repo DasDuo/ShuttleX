@@ -15,6 +15,26 @@ struct ImportView: View {
 
     private var groupCount: Int { previewFile.groups?.count ?? 0 }
 
+    /// Cap how many rows the preview renders — a big import (e.g. 1000 servers)
+    /// would otherwise build that many row views eagerly on every option change.
+    private let previewLimit = 50
+
+    private var totalServers: Int {
+        (previewFile.groups ?? []).reduce(0) { $0 + $1.hosts.count }
+    }
+
+    /// Groups trimmed to the first `previewLimit` servers overall (group order kept).
+    private var previewGroups: [(name: String, hosts: [JSONHostStore.Entry])] {
+        var remaining = previewLimit
+        var result: [(name: String, hosts: [JSONHostStore.Entry])] = []
+        for group in previewFile.groups ?? [] where remaining > 0 {
+            let shown = Array(group.hosts.prefix(remaining))
+            result.append((group.name, shown))
+            remaining -= shown.count
+        }
+        return result
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             header
@@ -89,31 +109,39 @@ struct ImportView: View {
 
     @ViewBuilder
     private var previewList: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 10) {
-                ForEach(previewFile.groups ?? [], id: \.name) { group in
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(group.name)
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(.secondary)
-                        ForEach(Array(group.hosts.enumerated()), id: \.offset) { _, entry in
-                            HStack(spacing: 6) {
-                                Image(systemName: "server.rack")
-                                    .font(.system(size: 10))
-                                    .foregroundStyle(.tertiary)
-                                Text(entry.name).font(.system(size: 12, weight: .medium))
-                                Text(connectionLabel(entry))
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 4) {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 10) {
+                    ForEach(previewGroups, id: \.name) { group in
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(group.name)
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(.secondary)
+                            ForEach(Array(group.hosts.enumerated()), id: \.offset) { _, entry in
+                                HStack(spacing: 6) {
+                                    Image(systemName: "server.rack")
+                                        .font(.system(size: 10))
+                                        .foregroundStyle(.tertiary)
+                                    Text(entry.name).font(.system(size: 12, weight: .medium))
+                                    Text(connectionLabel(entry))
+                                        .font(.system(size: 11))
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 2)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, 2)
+            .frame(height: 180)
+
+            if totalServers > previewLimit {
+                Text("Showing \(previewLimit) of \(totalServers) servers — all will be imported.")
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+            }
         }
-        .frame(height: 180)
     }
 
     private func connectionLabel(_ entry: JSONHostStore.Entry) -> String {
