@@ -262,6 +262,27 @@ private func makeTempDir() -> URL {
     #expect(after.first { $0.name == "b" }?.favorite == true)
 }
 
+@Test func tagsPersistAndAreSearchableOnlyWhenEnabled() throws {
+    let dir = makeTempDir(); defer { try? FileManager.default.removeItem(at: dir) }
+    let url = dir.appendingPathComponent("servers.json")
+    let file = JSONHostStore.File(groups: [.init(name: "g", hosts: [
+        .init(name: "a", host: "a", user: nil, port: nil, command: nil, remoteCommand: nil, favorite: nil, tags: ["prod", "web"]),
+        .init(name: "b", host: "b", user: nil, port: nil, command: nil),
+    ])], hosts: nil)
+    try JSONHostStore.write(file, to: url)
+
+    let groups = try JSONHostStore.load(from: url)
+    let hosts = groups.first!.hosts
+    #expect(hosts.first { $0.name == "a" }?.tags == ["prod", "web"])
+    #expect(hosts.first { $0.name == "b" }?.tags == [])
+    // Empty tags aren't written; set tags are.
+    #expect(try String(contentsOf: url, encoding: .utf8).contains("\"tags\""))
+
+    // Search matches a tag only when the feature is enabled.
+    #expect(HostFiltering.filter(groups, query: "prod", includeTags: true).first?.hosts.count == 1)
+    #expect(HostFiltering.filter(groups, query: "prod", includeTags: false).isEmpty)
+}
+
 // MARK: - Search filtering
 
 @Test func searchMatchesGroupNameOrHost() {

@@ -161,6 +161,11 @@ struct SettingsView: View {
                         .font(.callout)
                         .foregroundStyle(.orange)
                 }
+                Toggle("Enable server tags", isOn: $state.tagsEnabled)
+                Text("Adds an optional Tags field per server and shows small tag badges in the menu (also searchable). Off by default; when off, tags don't appear anywhere.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+
                 Toggle("Check for updates on launch", isOn: $state.checkForUpdates)
                 Text("When on, ShuttleX checks the public GitHub Releases API (no account, no tracking) at most once a day and shows a hint in the menu. Off by default.")
                     .font(.callout)

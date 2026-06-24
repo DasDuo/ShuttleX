@@ -23,7 +23,7 @@ struct MenuView: View {
     private let favoritesGroupName = "★ Favorites"
 
     private var filteredGroups: [HostGroup] {
-        HostFiltering.filter(state.groups, query: query)
+        HostFiltering.filter(state.groups, query: query, includeTags: state.tagsEnabled)
     }
 
     /// What the list renders: a synthetic Favorites section on top (JSON source,
@@ -167,6 +167,7 @@ struct MenuView: View {
                                         host: host,
                                         selected: host.id == selectedID,
                                         canFavorite: state.source != .sshConfig,
+                                        showTags: state.tagsEnabled,
                                         onToggleFavorite: { state.toggleFavorite(host) }
                                     ) {
                                         connect(host)
@@ -410,6 +411,7 @@ private struct HostRow: View {
     let host: SSHHost
     var selected = false
     var canFavorite = false
+    var showTags = false
     var onToggleFavorite: () -> Void = {}
     let action: () -> Void
 
@@ -430,6 +432,18 @@ private struct HostRow: View {
                             .font(.system(size: 11))
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
+                    }
+                    if showTags, !host.tags.isEmpty {
+                        HStack(spacing: 4) {
+                            ForEach(host.tags.prefix(4), id: \.self) { tag in
+                                Text(tag)
+                                    .font(.system(size: 9, weight: .medium))
+                                    .foregroundStyle(.secondary)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 1)
+                                    .background(.quaternary.opacity(0.7), in: Capsule())
+                            }
+                        }
                     }
                 }
                 Spacer()

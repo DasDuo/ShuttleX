@@ -10,6 +10,9 @@ struct SSHHost: Identifiable, Hashable {
     /// Stable host:port key for local (per-person) favorites on the remote
     /// source. `nil` for sources that store favorites another way (JSON file).
     var favoriteKey: String? = nil
+    /// Optional, free-form tags (shown/searchable only when the user enables the
+    /// tags feature in Settings). Always loaded; gating happens at the UI layer.
+    var tags: [String] = []
 
     var id: String { name + "|" + command }
 }

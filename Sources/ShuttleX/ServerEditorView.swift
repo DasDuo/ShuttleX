@@ -29,7 +29,7 @@ struct ServerEditorView: View {
         .frame(width: 460, height: 560)
         .onAppear { file = JSONHostStore.loadFile(from: state.jsonURL) }
         .sheet(item: $form) { model in
-            EntryForm(model: model, existingGroups: groups.map(\.name), defaultUser: state.defaultUser) { result in
+            EntryForm(model: model, existingGroups: groups.map(\.name), defaultUser: state.defaultUser, tagsEnabled: state.tagsEnabled) { result in
                 if let original = result.original {
                     file = ServerEditing.update(file, group: original.group, id: original.id,
                                                 to: result.entry, newGroup: result.group)
@@ -159,6 +159,7 @@ struct EntryForm: View {
         var command = ""
         var rawMode = false
         var favorite = false
+        var tags = ""
         var original: (group: String, id: UUID)?
 
         init(group: String = "") {
@@ -171,6 +172,7 @@ struct EntryForm: View {
             let ownUser = entry.user?.trimmingCharacters(in: .whitespaces) ?? ""
             useDefaultUser = ownUser.isEmpty
             user = ownUser
+            tags = (entry.tags ?? []).joined(separator: ", ")
             host = entry.host ?? ""
             port = entry.port.map(String.init) ?? ""
             remoteCommand = entry.remoteCommand ?? ""
@@ -190,13 +192,15 @@ struct EntryForm: View {
     @State private var model: Model
     let existingGroups: [String]
     let defaultUser: String
+    let tagsEnabled: Bool
     let onSave: (Result) -> Void
     @Environment(\.dismiss) private var dismiss
 
-    init(model: Model, existingGroups: [String], defaultUser: String = "", onSave: @escaping (Result) -> Void) {
+    init(model: Model, existingGroups: [String], defaultUser: String = "", tagsEnabled: Bool = false, onSave: @escaping (Result) -> Void) {
         _model = State(initialValue: model)
         self.existingGroups = existingGroups
         self.defaultUser = defaultUser
+        self.tagsEnabled = tagsEnabled
         self.onSave = onSave
     }
 
@@ -237,6 +241,9 @@ struct EntryForm: View {
                     }
                     Toggle("Raw custom command", isOn: $model.rawMode)
                     Toggle("Favorite", isOn: $model.favorite)
+                    if tagsEnabled {
+                        TextField("Tags (comma-separated)", text: $model.tags, prompt: Text("prod, web, eu"))
+                    }
                 }
                 if model.rawMode {
                     Section("Custom command") {
@@ -292,12 +299,18 @@ struct EntryForm: View {
         guard validationError == nil else { return }
         let name = model.name.trimmingCharacters(in: .whitespaces)
         let favorite: Bool? = model.favorite ? true : nil
+        // Always parsed (even if the tags feature is currently off) so existing
+        // tags aren't wiped when editing a server with the feature disabled.
+        let tagList = model.tags.split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        let tags: [String]? = tagList.isEmpty ? nil : tagList
         let entry: JSONHostStore.Entry
         if model.rawMode {
             entry = JSONHostStore.Entry(
                 name: name, host: nil, user: nil, port: nil,
                 command: model.command.trimmingCharacters(in: .whitespaces),
-                remoteCommand: nil, favorite: favorite
+                remoteCommand: nil, favorite: favorite, tags: tags
             )
         } else {
             let user = model.useDefaultUser ? "" : model.user.trimmingCharacters(in: .whitespaces)
@@ -309,7 +322,7 @@ struct EntryForm: View {
                 port: model.port.isEmpty ? nil : Int(model.port),
                 command: nil,
                 remoteCommand: remote.isEmpty ? nil : remote,
-                favorite: favorite
+                favorite: favorite, tags: tags
             )
         }
         onSave(Result(group: model.group, entry: entry, original: model.original))

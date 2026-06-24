@@ -4,6 +4,11 @@ All notable changes to ShuttleX are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.0] - 2026-06-22
+
+### Added
+- **Optional server tags** (off by default; enable in Settings → General). When on, each server gets an optional comma-separated **Tags** field in the editor, tags show as small badges in the menu, and search matches them. When off, tags appear nowhere — and any existing tags are kept, not removed. Stored as `tags` in the JSON (written only when set); a remote source may also provide them (strings only, never executed).
+
 ## [1.11.3] - 2026-06-22
 
 ### Changed
@@ -180,6 +185,7 @@ All notable changes to ShuttleX are documented here. The format is based on
 ### Added
 - Initial release. A menu-bar SSH launcher built with SwiftUI (`MenuBarExtra`), pure arm64 for Apple Silicon. Hosts from `~/.ssh/config` or a JSON file; choose your terminal (Terminal, iTerm2, Ghostty, Warp, Alacritty, kitty, WezTerm); open in a new window, tab, or split.
 
+[1.12.0]: https://github.com/DasDuo/ShuttleX/compare/v1.11.3...v1.12.0
 [1.11.3]: https://github.com/DasDuo/ShuttleX/compare/v1.11.2...v1.11.3
 [1.11.2]: https://github.com/DasDuo/ShuttleX/compare/v1.11.1...v1.11.2
 [1.11.1]: https://github.com/DasDuo/ShuttleX/compare/v1.11.0...v1.11.1

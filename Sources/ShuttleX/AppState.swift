@@ -46,6 +46,13 @@ final class AppState {
     /// When the remote inventory was last fetched successfully.
     var remoteLastUpdated: Date?
 
+    /// Opt-in (default off): show an optional Tags field per server and tag
+    /// badges in the menu, and include tags in search. When off, tags are
+    /// invisible everywhere — as if the feature didn't exist.
+    var tagsEnabled: Bool {
+        didSet { UserDefaults.standard.set(tagsEnabled, forKey: "tagsEnabled") }
+    }
+
     /// The mode actually used — falls back to "new window" when the selected
     /// terminal app doesn't support the chosen mode.
     var effectiveLaunchMode: LaunchMode {
@@ -104,6 +111,7 @@ final class AppState {
         launchMode = defaults.string(forKey: "launchMode").flatMap(LaunchMode.init) ?? .newWindow
         defaultUser = defaults.string(forKey: "defaultUser") ?? ""
         remoteURL = defaults.string(forKey: "remoteURL") ?? ""
+        tagsEnabled = defaults.bool(forKey: "tagsEnabled") // default false
         checkForUpdates = defaults.bool(forKey: "checkForUpdates") // default false
         reload()
         maybeCheckForUpdates()

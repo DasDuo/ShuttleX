@@ -26,9 +26,11 @@ enum JSONHostStore {
         var remoteCommand: String?
         /// User-pinned favorite (written only when true, so the JSON stays clean).
         var favorite: Bool?
+        /// Optional free-form tags (written only when non-empty).
+        var tags: [String]?
 
         private enum CodingKeys: String, CodingKey {
-            case name, host, user, port, command, remoteCommand, favorite
+            case name, host, user, port, command, remoteCommand, favorite, tags
         }
     }
 
@@ -76,9 +78,11 @@ enum JSONHostStore {
 
     private static func makeHost(_ entry: Entry, defaultUser: String = "", allowCommands: Bool = true,
                                  userOverrides: [String: String] = [:], favoriteKeys: Set<String> = []) -> SSHHost {
+        let tags = entry.tags ?? []
         // A raw command takes over completely — but never from a remote source.
         if allowCommands, let command = entry.command, !command.isEmpty {
-            return SSHHost(name: entry.name, detail: command, command: command, favorite: entry.favorite ?? false)
+            return SSHHost(name: entry.name, detail: command, command: command,
+                           favorite: entry.favorite ?? false, tags: tags)
         }
 
         let host = entry.host ?? entry.name
@@ -101,7 +105,7 @@ enum JSONHostStore {
 
         let detail = remote.map { "\(target): \($0)" } ?? target
         return SSHHost(name: entry.name, detail: detail, command: parts.joined(separator: " "),
-                       favorite: favorite, favoriteKey: serverKey)
+                       favorite: favorite, favoriteKey: serverKey, tags: tags)
     }
 
     /// Writes the JSON file nicely formatted. By default it snapshots the previous
