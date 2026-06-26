@@ -473,5 +473,13 @@ private struct HostRow: View {
                     : hovered ? AnyShapeStyle(.quaternary) : AnyShapeStyle(.clear))
         )
         .onHover { hovered = $0 }
+        .contextMenu {
+            Button {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(host.command, forType: .string)
+            } label: {
+                Label("Copy SSH command", systemImage: "doc.on.doc")
+            }
+        }
     }
 }

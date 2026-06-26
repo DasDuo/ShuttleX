@@ -31,6 +31,7 @@ A modern SSH launcher for the macOS menu bar — inspired by the original [SSHMe
   - When the terminal isn't running yet, a new window is always opened — tab/split only apply once a window exists
 - **Global hotkey** (configurable in Settings → General, off by default): press it from anywhere to open ShuttleX as a centered, Spotlight-style search window — type to filter, **↑/↓** to pick, **Enter** to connect, **Esc** to dismiss. Clicking the menu-bar icon still shows the familiar dropdown anchored under it
 - **Keyboard-friendly**: the search field is focused on open; type to filter, **↑/↓** to pick a result (the list scrolls to follow), and **Enter** to connect — the search clears afterwards
+- **Copy the SSH command**: right-click a server to copy its `ssh …` command to the clipboard — to share in chat, paste into another terminal, or drop into a ticket
 - **Default SSH user** (JSON / remote sources): a global default login user for entries that don't set their own, overridable per server
 - Optional: launch at login (Settings → General)
 - **Optional update check** (off by default): enable it in Settings to get a hint in the menu when a newer release is on GitHub — it checks the public Releases API at most once a day (no account, no tracking) and links to the download; it never auto-installs
