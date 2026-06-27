@@ -123,7 +123,8 @@ final class PanelController {
     }
 
     func openSettings() {
-        hide()
+        // The panel is hidden centrally in the delegate's showSettings(), so all
+        // entry points (gear, ⌘,, right-click) behave the same.
         onOpenSettings()
     }
 

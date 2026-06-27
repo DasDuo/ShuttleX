@@ -4,6 +4,12 @@ All notable changes to ShuttleX are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.1] - 2026-06-27
+
+### Fixed
+- Pressing **⌘,** opened an empty grey window instead of Settings. It now opens the real settings window — the same one the gear button opens.
+- Opening Settings is now consistent from every entry point (gear, ⌘,, the right-click menu): the dropdown panel closes first and the settings window comes cleanly to the front, instead of the floating panel sometimes covering it.
+
 ## [1.13.0] - 2026-06-27
 
 ### Added
@@ -190,6 +196,7 @@ All notable changes to ShuttleX are documented here. The format is based on
 ### Added
 - Initial release. A menu-bar SSH launcher built with SwiftUI (`MenuBarExtra`), pure arm64 for Apple Silicon. Hosts from `~/.ssh/config` or a JSON file; choose your terminal (Terminal, iTerm2, Ghostty, Warp, Alacritty, kitty, WezTerm); open in a new window, tab, or split.
 
+[1.13.1]: https://github.com/DasDuo/ShuttleX/compare/v1.13.0...v1.13.1
 [1.13.0]: https://github.com/DasDuo/ShuttleX/compare/v1.12.0...v1.13.0
 [1.12.0]: https://github.com/DasDuo/ShuttleX/compare/v1.11.3...v1.12.0
 [1.11.3]: https://github.com/DasDuo/ShuttleX/compare/v1.11.2...v1.11.3

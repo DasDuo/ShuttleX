@@ -9,9 +9,17 @@ struct ShuttleXApp: App {
     var body: some Scene {
         // The status item, the Spotlight panel, and the Settings window are all
         // managed by the delegate in AppKit. An accessory app still needs one
-        // scene, so this stays as an empty, unused Settings scene.
+        // scene, so this stays as an empty Settings scene — its default ⌘, command
+        // is replaced below so it opens our own settings window instead of this
+        // empty scene.
         Settings {
             EmptyView()
+        }
+        .commands {
+            CommandGroup(replacing: .appSettings) {
+                Button("Settings…") { delegate.openSettings() }
+                    .keyboardShortcut(",", modifiers: .command)
+            }
         }
     }
 }

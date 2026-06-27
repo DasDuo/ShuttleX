@@ -64,7 +64,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openPanel() { panelController.show(anchor: .statusItem(statusItemRect())) }
-    @objc private func openSettings() { showSettings() }
+    @objc func openSettings() { showSettings() }
     @objc private func quit() { NSApp.terminate(nil) }
 
     /// Shows the Settings window, creating it on first use. We own it as a plain
@@ -72,6 +72,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// private `showSettingsWindow:` selector, which is unreliable for an
     /// accessory app (and varies across macOS versions).
     private func showSettings() {
+        // Close the transient (floating) panel first, so Settings comes cleanly
+        // to the front regardless of entry point (gear, ⌘,, right-click).
+        panelController?.hide()
         if settingsWindow == nil {
             let hosting = NSHostingView(rootView: SettingsView().environment(state))
             let window = NSWindow(
