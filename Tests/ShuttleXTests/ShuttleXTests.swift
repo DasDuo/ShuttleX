@@ -356,6 +356,32 @@ private func makeTempDir() -> URL {
     #expect(file.groups?.contains { $0.name == "Servers" } == true)
 }
 
+@Test func serverEditingDuplicatesEntry() {
+    var file = JSONHostStore.File(
+        groups: [.init(name: "A", hosts: [
+            .init(name: "h1", host: "web01", user: "root", port: 2222, command: nil, remoteCommand: "htop", favorite: true, tags: ["prod"]),
+            .init(name: "h2", host: "web02", user: nil, port: nil, command: nil),
+        ])],
+        hosts: nil
+    )
+    let h1id = file.groups![0].hosts[0].id
+
+    file = ServerEditing.duplicate(file, group: "A", id: h1id)
+    let hosts = file.groups!.first { $0.name == "A" }!.hosts
+    #expect(hosts.count == 3)
+    // Copy is inserted directly after the original.
+    #expect(hosts[1].name == "h1-copy")
+    // Distinct identity, but every other field carried over.
+    #expect(hosts[1].id != hosts[0].id)
+    #expect(hosts[1].host == "web01")
+    #expect(hosts[1].port == 2222)
+    #expect(hosts[1].remoteCommand == "htop")
+    #expect(hosts[1].favorite == true)
+    #expect(hosts[1].tags == ["prod"])
+    // h2 still last.
+    #expect(hosts[2].name == "h2")
+}
+
 @Test func serverEditingHandlesDuplicateNames() {
     // Two entries with the SAME name but different hosts (the AdGuard case).
     var file = JSONHostStore.File(

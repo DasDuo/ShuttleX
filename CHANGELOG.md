@@ -4,6 +4,11 @@ All notable changes to ShuttleX are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0] - 2026-06-27
+
+### Added
+- **Duplicate a server** in the editor (the new icon next to Edit): inserts a copy directly below, with `-copy` appended to the name and everything else carried over. Handy for variants of the same host without re-typing it — e.g. one entry that opens a shell and another that runs a remote command like `htop`, or the same server with a different user or port.
+
 ## [1.13.1] - 2026-06-27
 
 ### Fixed
@@ -196,6 +201,7 @@ All notable changes to ShuttleX are documented here. The format is based on
 ### Added
 - Initial release. A menu-bar SSH launcher built with SwiftUI (`MenuBarExtra`), pure arm64 for Apple Silicon. Hosts from `~/.ssh/config` or a JSON file; choose your terminal (Terminal, iTerm2, Ghostty, Warp, Alacritty, kitty, WezTerm); open in a new window, tab, or split.
 
+[1.14.0]: https://github.com/DasDuo/ShuttleX/compare/v1.13.1...v1.14.0
 [1.13.1]: https://github.com/DasDuo/ShuttleX/compare/v1.13.0...v1.13.1
 [1.13.0]: https://github.com/DasDuo/ShuttleX/compare/v1.12.0...v1.13.0
 [1.12.0]: https://github.com/DasDuo/ShuttleX/compare/v1.11.3...v1.12.0

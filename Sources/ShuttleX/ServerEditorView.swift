@@ -95,6 +95,14 @@ struct ServerEditorView: View {
             Spacer()
             Button("Edit") { form = EntryForm.Model(from: entry, group: group) }
                 .buttonStyle(.borderless)
+            Button {
+                file = ServerEditing.duplicate(file, group: group, id: entry.id)
+                persist()
+            } label: {
+                Image(systemName: "plus.square.on.square")
+            }
+            .buttonStyle(.borderless)
+            .help("Duplicate")
             Button(role: .destructive) {
                 file = ServerEditing.delete(file, group: group, id: entry.id)
                 persist()

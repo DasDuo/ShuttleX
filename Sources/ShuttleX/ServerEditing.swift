@@ -47,6 +47,21 @@ enum ServerEditing {
         return withGroups(file, groups)
     }
 
+    /// Inserts a copy of the entry identified by `id` directly after it in the
+    /// same group. The copy gets a fresh id (so it stays distinct) and its name
+    /// suffixed with "-copy"; everything else is carried over.
+    static func duplicate(_ file: JSONHostStore.File, group: String, id: UUID) -> JSONHostStore.File {
+        var groups = file.groups ?? []
+        guard let groupIndex = groups.firstIndex(where: { $0.name == group }),
+              let hostIndex = groups[groupIndex].hosts.firstIndex(where: { $0.id == id })
+        else { return file }
+        var copy = groups[groupIndex].hosts[hostIndex]
+        copy.id = UUID()
+        copy.name += "-copy"
+        groups[groupIndex].hosts.insert(copy, at: hostIndex + 1)
+        return withGroups(file, groups)
+    }
+
     static func delete(_ file: JSONHostStore.File, group: String, id: UUID) -> JSONHostStore.File {
         var groups = file.groups ?? []
         guard let groupIndex = groups.firstIndex(where: { $0.name == group }) else { return file }

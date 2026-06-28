@@ -19,7 +19,7 @@ A modern SSH launcher for the macOS menu bar — inspired by the original [SSHMe
   - `~/.ssh/config` — hosts are read directly (including `Include` directives; wildcard hosts like `*` are ignored)
   - JSON file at `~/.config/shuttlex/servers.json` (created with sample entries the first time you switch to it). The path is configurable in Settings, and the last 3 versions are kept as backups next to the file (`servers.backup-…json`) on every change — manual or imported
   - **Remote URL** — a read-only server list loaded from an `https://` URL: a shared "single source of truth" for a team. Inventory only (groups, names, host, port; commands are ignored for safety), cached locally for offline use. Each person keeps their own login user and favorites locally
-- **Add, edit, delete and reorder servers in-app** (JSON source) — manage your connection list from a GUI in Settings → "Add / edit servers…" (drag to reorder within a group), no hand-editing of JSON required
+- **Add, edit, duplicate, delete and reorder servers in-app** (JSON source) — manage your connection list from a GUI in Settings → "Add / edit servers…" (drag to reorder within a group), no hand-editing of JSON required
 - **Run a command on a server**: give an entry a *remote command* (e.g. `htop`, `tail -f …`) and ShuttleX runs it over SSH with a TTY; or use a *raw custom command* for jump hosts/tunnels
 - **Favorites**: pin your most-used servers (hover the star in the menu, or toggle it in the editor) to a collapsible **★ Favorites** section at the top of the dropdown
 - **Optional tags** (off by default; enable in Settings → General): add comma-separated tags per server, shown as small badges in the menu and matched by search. When off, tags don't appear anywhere
