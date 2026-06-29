@@ -12,6 +12,8 @@ struct MenuView: View {
     @State private var expandedGroups: Set<String> = []
     /// nil = use the count-based default; set once the user toggles Favorites.
     @State private var favoritesExpanded: Bool?
+    /// nil = default (expanded). Lets a lone group be collapsed too.
+    @State private var singleGroupExpanded: Bool?
     /// Keyboard-selected host (↑/↓ navigation), by SSHHost id.
     @State private var selectedID: SSHHost.ID?
 
@@ -344,7 +346,9 @@ struct MenuView: View {
             // Default expanded when small, but always collapsible once toggled.
             return favoritesExpanded ?? (group.hosts.count <= 5)
         }
-        if displayGroups.count == 1 { return true }
+        // A lone group: expanded by default when small (≤5), collapsed otherwise
+        // (with many hosts you search rather than scroll) — always collapsible.
+        if displayGroups.count == 1 { return singleGroupExpanded ?? (group.hosts.count <= 5) }
         return expandedGroups.contains(group.name)
     }
 
@@ -352,6 +356,10 @@ struct MenuView: View {
         withAnimation(.easeInOut(duration: 0.15)) {
             if group.name == favoritesGroupName {
                 favoritesExpanded = !isExpanded(group)
+                return
+            }
+            if displayGroups.count == 1 {
+                singleGroupExpanded = !isExpanded(group)
                 return
             }
             if expandedGroups.contains(group.name) {

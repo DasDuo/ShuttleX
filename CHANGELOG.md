@@ -4,6 +4,11 @@ All notable changes to ShuttleX are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.1] - 2026-06-28
+
+### Fixed
+- A single group (e.g. the whole list when the source is `~/.ssh/config`) couldn't be collapsed — its chevron did nothing. It now toggles like any other group: expanded by default when small (≤5 hosts), collapsed otherwise (with many hosts you search instead of scroll), and always collapsible. Searching still expands everything.
+
 ## [1.14.0] - 2026-06-27
 
 ### Added
@@ -201,6 +206,7 @@ All notable changes to ShuttleX are documented here. The format is based on
 ### Added
 - Initial release. A menu-bar SSH launcher built with SwiftUI (`MenuBarExtra`), pure arm64 for Apple Silicon. Hosts from `~/.ssh/config` or a JSON file; choose your terminal (Terminal, iTerm2, Ghostty, Warp, Alacritty, kitty, WezTerm); open in a new window, tab, or split.
 
+[1.14.1]: https://github.com/DasDuo/ShuttleX/compare/v1.14.0...v1.14.1
 [1.14.0]: https://github.com/DasDuo/ShuttleX/compare/v1.13.1...v1.14.0
 [1.13.1]: https://github.com/DasDuo/ShuttleX/compare/v1.13.0...v1.13.1
 [1.13.0]: https://github.com/DasDuo/ShuttleX/compare/v1.12.0...v1.13.0
