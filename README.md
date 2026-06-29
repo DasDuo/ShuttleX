@@ -5,9 +5,11 @@
 A modern SSH launcher for the macOS menu bar — inspired by the original [SSHMenu](https://sshmenu.sourceforge.net) and by [Shuttle](https://github.com/fitztrev/shuttle), rebuilt with SwiftUI (`@Observable`) on a custom `NSPanel`. Pure **arm64** binary for Apple Silicon, not a universal app.
 
 <p align="center">
-  <img src="docs/screenshots/menu.png" alt="ShuttleX menu bar dropdown with searchable, collapsible server groups" width="340" valign="top">
+  <img src="docs/screenshots/menu.png" alt="ShuttleX menu bar dropdown with searchable, collapsible server groups" width="360" valign="top">
   &nbsp;
-  <img src="docs/screenshots/settings.png" alt="ShuttleX settings — terminal, server source (ssh config / JSON / remote URL), table import" width="300" valign="top">
+  <img src="docs/screenshots/settings.png" alt="ShuttleX settings — terminal, server source (ssh config / JSON / remote URL), table import" width="255" valign="top">
+  &nbsp;
+  <img src="docs/screenshots/settings-general.png" alt="ShuttleX settings — global hotkey, server tags, launch at login, update check" width="255" valign="top">
 </p>
 
 📖 Full documentation is in the [**Wiki**](https://github.com/DasDuo/ShuttleX/wiki) · version history in the [**Changelog**](CHANGELOG.md).
