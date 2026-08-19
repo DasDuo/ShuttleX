@@ -4,6 +4,11 @@ All notable changes to ShuttleX are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.0] - 2026-08-19
+
+### Added
+- **URL entry type**: an entry can now open a URL directly — in your default browser (`https://` web UIs like Proxmox), Screen Sharing (`vnc://`), RDP (`rdp://`) or anything else with a URL scheme — instead of launching ssh in a terminal. Pick the type (SSH / Custom command / URL) in the editor; URL rows show a globe icon and offer "Copy URL" on right-click. Combined with **Duplicate** this covers "same box, several ways in" (e.g. `proxmox` via ssh + `proxmox · web`) while keeping one row = one action. Remote sources never deliver openable URLs — they're stripped like commands (inventory only). Requested by @deepcoder.
+
 ## [1.15.0] - 2026-08-14
 
 ### Added
@@ -242,6 +247,7 @@ All notable changes to ShuttleX are documented here. The format is based on
 ### Added
 - Initial release. A menu-bar SSH launcher built with SwiftUI (`MenuBarExtra`), pure arm64 for Apple Silicon. Hosts from `~/.ssh/config` or a JSON file; choose your terminal (Terminal, iTerm2, Ghostty, Warp, Alacritty, kitty, WezTerm); open in a new window, tab, or split.
 
+[1.16.0]: https://github.com/DasDuo/ShuttleX/compare/v1.15.0...v1.16.0
 [1.15.0]: https://github.com/DasDuo/ShuttleX/compare/v1.14.6...v1.15.0
 [1.14.6]: https://github.com/DasDuo/ShuttleX/compare/v1.14.5...v1.14.6
 [1.14.5]: https://github.com/DasDuo/ShuttleX/compare/v1.14.4...v1.14.5

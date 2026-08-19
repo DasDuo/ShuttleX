@@ -19,9 +19,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.15.0</string>
+	<string>1.16.0</string>
 	<key>CFBundleVersion</key>
-	<string>41</string>
+	<string>42</string>
 	<key>LSArchitecturePriority</key>
 	<array>
 		<string>arm64</string>
@@ -35,6 +35,6 @@
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 DasDuo</string>
 	<key>ShuttleXChannel</key>
-	<string>stable</string>
+	<string>beta</string>
 </dict>
 </plist>
