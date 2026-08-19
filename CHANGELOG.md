@@ -7,6 +7,8 @@ All notable changes to ShuttleX are documented here. The format is based on
 ## [1.16.0] - 2026-08-19
 
 ### Added
+- **←/→ jump between groups** in the menu: while browsing with the keyboard (empty search field), ←/→ move the selection to the previous/next group — the fast way past a big group. While typing a query, ←/→ keep moving the text cursor as usual.
+- **Compact list** (Settings → General, off by default): dense menu rows — server name only, no icon, no detail line, tighter spacing. Handy for long lists.
 - **URL entry type**: an entry can now open a URL directly — in your default browser (`https://` web UIs like Proxmox), Screen Sharing (`vnc://`), RDP (`rdp://`) or anything else with a URL scheme — instead of launching ssh in a terminal. Pick the type (SSH / Custom command / URL) in the editor; URL rows show a globe icon and offer "Copy URL" on right-click. Combined with **Duplicate** this covers "same box, several ways in" (e.g. `proxmox` via ssh + `proxmox · web`) while keeping one row = one action. Remote sources never deliver openable URLs — they're stripped like commands (inventory only). Requested by @deepcoder.
 
 ## [1.15.0] - 2026-08-14
