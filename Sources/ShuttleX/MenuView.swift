@@ -472,7 +472,7 @@ private struct HostRow: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 8) {
-                Image(systemName: "server.rack")
+                Image(systemName: host.urlString != nil ? "globe" : "server.rack")
                     .font(.system(size: 12))
                     .foregroundStyle(hovered ? .primary : .secondary)
                     .frame(width: 16)
@@ -528,9 +528,9 @@ private struct HostRow: View {
         .contextMenu {
             Button {
                 NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(host.command, forType: .string)
+                NSPasteboard.general.setString(host.urlString ?? host.command, forType: .string)
             } label: {
-                Label("Copy SSH command", systemImage: "doc.on.doc")
+                Label(host.urlString != nil ? "Copy URL" : "Copy SSH command", systemImage: "doc.on.doc")
             }
         }
     }

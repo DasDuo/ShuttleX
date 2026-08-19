@@ -13,8 +13,11 @@ struct SSHHost: Identifiable, Hashable {
     /// Optional, free-form tags (shown/searchable only when the user enables the
     /// tags feature in Settings). Always loaded; gating happens at the UI layer.
     var tags: [String] = []
+    /// URL-type entry: opens this URL directly (browser / vnc:// / rdp:// …)
+    /// instead of launching ssh in a terminal. `command` is empty then.
+    var urlString: String? = nil
 
-    var id: String { name + "|" + command }
+    var id: String { name + "|" + (urlString ?? command) }
 }
 
 struct HostGroup: Identifiable {

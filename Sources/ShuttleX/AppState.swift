@@ -276,6 +276,15 @@ final class AppState {
 
     func connect(_ host: SSHHost) {
         lastError = nil
+        // URL entries open directly (browser, vnc://, rdp://…) — no terminal.
+        if let urlString = host.urlString {
+            if let url = URL(string: urlString), url.scheme != nil {
+                NSWorkspace.shared.open(url)
+            } else {
+                lastError = "Invalid URL: \(urlString)"
+            }
+            return
+        }
         let name = terminal.displayName
         do {
             // CLI terminals launch asynchronously; surface a late failure too.
