@@ -109,6 +109,12 @@ final class PanelController {
     /// (e.g. after the server editor closes).
     private(set) var lastAnchor: Anchor = .center
 
+    /// Whether the menu is on screen right now. Used to decide where closing a
+    /// window should return to — an accessory app only receives ⌘, while one of
+    /// its own windows is key, so "was the menu open" is the honest test, not
+    /// which button was clicked.
+    var isVisible: Bool { panel.isVisible }
+
     func show(anchor: Anchor) {
         showCount += 1
         lastAnchor = anchor

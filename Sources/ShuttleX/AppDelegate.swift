@@ -19,13 +19,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     /// True when the editor was opened from the menu, so closing it brings the
     /// menu back instead of leaving the user with nothing.
     private var editorOpenedFromMenu = false
+    /// Same for Settings: opened from the menu's gear, closing it returns to the
+    /// menu. Opened via ⌘, or the right-click menu, it doesn't — the user had no
+    /// menu on screen, so popping one up would be a surprise.
+    private var settingsOpenedFromMenu = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let panelController = PanelController(state: state)
         panelController.onOpenSettings = { [weak self] in self?.showSettings() }
-        panelController.hasVisibleAuxWindow = { [weak self] in self?.settingsWindow?.isVisible ?? false }
-        panelController.onOpenEditor = { [weak self] in self?.showEditor(fromMenu: true) }
-        state.openEditor = { [weak self] in self?.showEditor(fromMenu: false) }
+        panelController.hasVisibleAuxWindow = { [weak self] in
+            guard let self else { return false }
+            return (settingsWindow?.isVisible ?? false) || (editorWindow?.isVisible ?? false)
+        }
+        panelController.onOpenEditor = { [weak self] in self?.showEditor() }
+        state.openEditor = { [weak self] in self?.showEditor() }
         self.panelController = panelController
 
         let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -40,6 +47,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         KeyboardShortcuts.onKeyUp(for: .toggleShuttleX) { [weak panelController] in
             panelController?.toggle(anchor: .center)
         }
+
+        // Nothing of ours is on screen yet, so a restored placeholder window
+        // from the empty Settings scene can be cleared right away.
+        DispatchQueue.main.async { [weak self] in self?.closePlaceholderWindows() }
     }
 
     /// Left-click toggles the anchored dropdown; right-click shows a small menu.
@@ -80,7 +91,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     /// AppKit window instead of relying on SwiftUI's `Settings` scene + the
     /// private `showSettingsWindow:` selector, which is unreliable for an
     /// accessory app (and varies across macOS versions).
+    /// The app needs one SwiftUI scene, so `ShuttleXApp` carries an empty
+    /// `Settings` scene as a placeholder. macOS can restore that scene as a
+    /// blank window — and since activating the app brings *every* window of
+    /// ours forward, it then shows up next to the real settings window. Close
+    /// any such stray window; the one we manage is excluded by identity.
+    private func closePlaceholderWindows() {
+        for window in NSApp.windows
+        where window !== settingsWindow && window !== editorWindow
+            && window.title.contains("Settings") {
+            panelLog.notice("closing placeholder window (title=\(window.title, privacy: .public))")
+            window.close()
+        }
+    }
+
     private func showSettings() {
+        closePlaceholderWindows()
+        // Decide before hiding the panel: if the menu was up, that's where the
+        // user came from — whether they clicked the gear or pressed ⌘,.
+        if panelController.isVisible { settingsOpenedFromMenu = true }
         // Close the transient (floating) panel first, so Settings comes cleanly
         // to the front regardless of entry point (gear, ⌘,, right-click) —
         // without handing focus away, since our own Settings window is next.
@@ -94,6 +123,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 defer: false
             )
             window.title = "ShuttleX Settings"
+            // We create and own this window; letting macOS restore a copy of it
+            // is what produces stray blank windows.
+            window.isRestorable = false
             // Resizable on purpose: hiding the zoom button leaves a gap where
             // it should be, and a disabled one looks broken — so make it do
             // something instead. Long server lists get more room, too. The
@@ -101,6 +133,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             window.minSize = NSSize(width: 520, height: 420)
             window.contentView = hosting
             window.isReleasedWhenClosed = false
+            window.delegate = self
             window.center()
             settingsWindow = window
         }
@@ -110,10 +143,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     /// Shows the server editor for the active source in its own window.
     /// `~/.ssh/config` has no editor — the menu hides the button there.
-    private func showEditor(fromMenu: Bool) {
+    private func showEditor() {
         guard state.source != .sshConfig else { return }
+        if panelController.isVisible { editorOpenedFromMenu = true }
         panelController?.hide(returnFocus: false, reason: "open editor")
-        if fromMenu { editorOpenedFromMenu = true }
 
         if editorWindow == nil {
             let close: () -> Void = { [weak self] in self?.editorWindow?.close() }
@@ -127,6 +160,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 defer: false
             )
             window.title = "ShuttleX — Servers"
+            window.isRestorable = false
             window.contentView = NSHostingView(rootView: content)
             window.minSize = NSSize(width: 460, height: 420)
             window.isReleasedWhenClosed = false
@@ -142,14 +176,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     /// back the way it was opened — they asked to edit servers, not to be left
     /// staring at an empty desktop.
     func windowWillClose(_ notification: Notification) {
-        guard (notification.object as? NSWindow) === editorWindow else { return }
-        // Rebuilt on next open so it always matches the current source.
-        editorWindow = nil
-        guard editorOpenedFromMenu else { return }
-        editorOpenedFromMenu = false
+        let closing = notification.object as? NSWindow
+        let cameFromMenu: Bool
+        if closing === editorWindow {
+            // Rebuilt on next open so it always matches the current source.
+            editorWindow = nil
+            cameFromMenu = editorOpenedFromMenu
+            editorOpenedFromMenu = false
+        } else if closing === settingsWindow {
+            cameFromMenu = settingsOpenedFromMenu
+            settingsOpenedFromMenu = false
+        } else {
+            return
+        }
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
-            panelController.show(anchor: panelController.lastAnchor)
+            // Still another of our windows up? Then the user isn't done here.
+            let stillOpen = (editorWindow?.isVisible ?? false) || (settingsWindow?.isVisible ?? false)
+            guard !stillOpen else { return }
+            if cameFromMenu {
+                panelController.show(anchor: panelController.lastAnchor)
+            } else {
+                // Opened via ⌘, or the right-click menu: hand focus back to
+                // whatever the user came from. Without this ShuttleX stays the
+                // active app with no window and keystrokes go nowhere.
+                NSApp.hide(nil)
+            }
         }
     }
 
