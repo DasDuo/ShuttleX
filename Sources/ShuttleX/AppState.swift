@@ -51,6 +51,12 @@ final class AppState {
         didSet { UserDefaults.standard.set(tagsEnabled, forKey: "tagsEnabled") }
     }
 
+    /// Opt-in (default off): dense menu rows — server name only, no icon, no
+    /// detail line, tighter spacing. For long lists.
+    var compactList: Bool {
+        didSet { UserDefaults.standard.set(compactList, forKey: "compactList") }
+    }
+
     /// Seconds between connections when opening a whole group. A stagger keeps
     /// SSH-agent prompts (e.g. Secretive taps) sequential instead of a burst —
     /// we can't detect "session established" (ssh runs inside the terminal), so
@@ -118,6 +124,7 @@ final class AppState {
         defaultUser = defaults.string(forKey: "defaultUser") ?? ""
         remoteURL = defaults.string(forKey: "remoteURL") ?? ""
         tagsEnabled = defaults.bool(forKey: "tagsEnabled") // default false
+        compactList = defaults.bool(forKey: "compactList") // default false
         let storedInterval = defaults.double(forKey: "openAllInterval")
         openAllInterval = storedInterval > 0 ? storedInterval : 2.0
         checkForUpdates = defaults.bool(forKey: "checkForUpdates") // default false

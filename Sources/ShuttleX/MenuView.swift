@@ -136,6 +136,10 @@ struct MenuView: View {
                 .onSubmit(connectSelected)
                 .onKeyPress(.upArrow) { moveSelection(-1); return .handled }
                 .onKeyPress(.downArrow) { moveSelection(1); return .handled }
+                // ←/→ jump between groups — but only while the field is empty,
+                // so the caret keys keep working while typing a query.
+                .onKeyPress(.leftArrow) { query.isEmpty ? { jumpGroup(-1); return .handled }() : .ignored }
+                .onKeyPress(.rightArrow) { query.isEmpty ? { jumpGroup(1); return .handled }() : .ignored }
                 .onChange(of: query) { selectedID = query.isEmpty ? nil : navigableHosts.first?.id }
         }
         .padding(.horizontal, 8)
@@ -171,6 +175,7 @@ struct MenuView: View {
                                         selected: host.id == selectedID,
                                         canFavorite: state.source != .sshConfig,
                                         showTags: state.tagsEnabled,
+                                        compact: state.compactList,
                                         onToggleFavorite: { state.toggleFavorite(host) }
                                     ) {
                                         connect(host)
@@ -346,6 +351,10 @@ struct MenuView: View {
     /// selection, collapse the rest. (Searching expands everything anyway.)
     private func expandOnlyGroup(containing host: SSHHost) {
         guard let group = displayGroups.first(where: { g in g.hosts.contains { $0.id == host.id } }) else { return }
+        expandOnly(group)
+    }
+
+    private func expandOnly(_ group: HostGroup) {
         withAnimation(.easeInOut(duration: 0.15)) {
             if group.name == favoritesGroupName {
                 favoritesExpanded = true
@@ -356,6 +365,19 @@ struct MenuView: View {
             }
             singleGroupExpanded = true
         }
+    }
+
+    /// ←/→: jump the selection to the first host of the previous/next group —
+    /// the fast way past a big group. The accordion opens the target group.
+    private func jumpGroup(_ delta: Int) {
+        let groups = displayGroups.filter { !$0.hosts.isEmpty }
+        guard !groups.isEmpty else { return }
+        let current = groups.firstIndex { g in g.hosts.contains { $0.id == selectedID } }
+        let next = current.map { min(max($0 + delta, 0), groups.count - 1) } ?? (delta > 0 ? 0 : groups.count - 1)
+        let group = groups[next]
+        guard let first = group.hosts.first else { return }
+        selectedID = first.id
+        if query.isEmpty { expandOnly(group) }
     }
 
     private func connectSelected() {
@@ -464,6 +486,8 @@ private struct HostRow: View {
     var selected = false
     var canFavorite = false
     var showTags = false
+    /// Dense row: name only — no icon, no detail line, tighter spacing.
+    var compact = false
     var onToggleFavorite: () -> Void = {}
     let action: () -> Void
 
@@ -472,20 +496,22 @@ private struct HostRow: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 8) {
-                Image(systemName: host.urlString != nil ? "globe" : "server.rack")
-                    .font(.system(size: 12))
-                    .foregroundStyle(hovered ? .primary : .secondary)
-                    .frame(width: 16)
+                if !compact {
+                    Image(systemName: host.urlString != nil ? "globe" : "server.rack")
+                        .font(.system(size: 12))
+                        .foregroundStyle(hovered ? .primary : .secondary)
+                        .frame(width: 16)
+                }
                 VStack(alignment: .leading, spacing: 1) {
                     Text(host.name)
                         .font(.system(size: 13, weight: .medium))
-                    if let detail = host.detail, detail != host.name {
+                    if !compact, let detail = host.detail, detail != host.name {
                         Text(detail)
                             .font(.system(size: 11))
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }
-                    if showTags, !host.tags.isEmpty {
+                    if !compact, showTags, !host.tags.isEmpty {
                         HStack(spacing: 4) {
                             ForEach(host.tags.prefix(4), id: \.self) { tag in
                                 Text(tag)
@@ -515,7 +541,7 @@ private struct HostRow: View {
                 }
             }
             .padding(.horizontal, 8)
-            .padding(.vertical, 5)
+            .padding(.vertical, compact ? 2 : 5)
             .contentShape(RoundedRectangle(cornerRadius: 7))
         }
         .buttonStyle(.plain)
