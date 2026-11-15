@@ -2,7 +2,9 @@ import SwiftUI
 
 struct ServerEditorView: View {
     let state: AppState
-    @Environment(\.dismiss) private var dismiss
+    /// Closes the hosting window. The editor lives in its own window, not as a
+    /// sheet on Settings — it manages your server list, it isn't a preference.
+    var onClose: () -> Void = {}
 
     @State private var file = JSONHostStore.File(groups: [], hosts: nil)
     @State private var form: EntryForm.Model?
@@ -26,7 +28,7 @@ struct ServerEditorView: View {
             Divider()
             footer
         }
-        .frame(width: 460, height: 560)
+        .frame(minWidth: 460, minHeight: 480)
         .onAppear { file = JSONHostStore.loadFile(from: state.jsonURL) }
         .sheet(item: $form) { model in
             EntryForm(model: model, existingGroups: groups.map(\.name), defaultUser: state.defaultUser, tagsEnabled: state.tagsEnabled) { result in
@@ -133,7 +135,7 @@ struct ServerEditorView: View {
                 Label("Add server", systemImage: "plus")
             }
             Spacer()
-            Button("Done") { dismiss() }
+            Button("Done") { onClose() }
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)
         }

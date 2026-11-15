@@ -9,8 +9,6 @@ struct SettingsView: View {
     @State private var loginItemError: String?
     @State private var parseResult: TableImporter.ParseResult?
     @State private var importError: String?
-    @State private var showEditor = false
-    @State private var showRemoteEditor = false
 
     var body: some View {
         @Bindable var state = state
@@ -74,7 +72,7 @@ struct SettingsView: View {
                         .font(.callout)
                         .foregroundStyle(.secondary)
                     HStack {
-                        Button("Add / edit servers…") { showEditor = true }
+                        Button("Add / edit servers…") { state.openEditor() }
                             .buttonStyle(.borderedProminent)
                         Spacer()
                     }
@@ -112,7 +110,7 @@ struct SettingsView: View {
                     TextField("Default user", text: $state.defaultUser, prompt: Text("none"))
                         .onSubmit { state.reload() }
                     HStack {
-                        Button("Edit servers…") { showRemoteEditor = true }
+                        Button("Edit servers…") { state.openEditor() }
                             .buttonStyle(.borderedProminent)
                         Spacer()
                         Button("Reload") { state.reload(force: true) }
@@ -189,17 +187,13 @@ struct SettingsView: View {
             }
         }
         .formStyle(.grouped)
-        // Bounded height so the window fits smaller screens (e.g. 14") and the
-        // form scrolls instead of growing to its full content height.
-        .frame(width: 460, height: 600)
+        // Wider than every sheet it hosts (editor 460, import 480) — a sheet as
+        // wide as its parent sits flush against the window edges and reads as
+        // broken. Resizable from here, with the form scrolling rather than
+        // growing, so it still fits smaller screens (e.g. 14").
+        .frame(minWidth: 520, minHeight: 420)
         .sheet(item: $parseResult) { result in
             ImportView(result: result, state: state)
-        }
-        .sheet(isPresented: $showEditor) {
-            ServerEditorView(state: state)
-        }
-        .sheet(isPresented: $showRemoteEditor) {
-            RemoteEditorView(state: state)
         }
     }
 

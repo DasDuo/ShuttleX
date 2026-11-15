@@ -6,7 +6,8 @@ import SwiftUI
 /// and survive remote reloads. Mirrors the JSON editor for a consistent feel.
 struct RemoteEditorView: View {
     let state: AppState
-    @Environment(\.dismiss) private var dismiss
+    /// Closes the hosting window (see ServerEditorView).
+    var onClose: () -> Void = {}
 
     private struct ServerItem: Identifiable {
         let id: String       // unique row id (group + index)
@@ -33,7 +34,7 @@ struct RemoteEditorView: View {
             Divider()
             footer
         }
-        .frame(width: 460, height: 560)
+        .frame(minWidth: 460, minHeight: 480)
         .onAppear(perform: loadInventory)
         .sheet(item: $editing) { item in
             RemoteEntryForm(
@@ -112,7 +113,7 @@ struct RemoteEditorView: View {
     private var footer: some View {
         HStack {
             Spacer()
-            Button("Done") { dismiss() }
+            Button("Done") { onClose() }
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)
         }

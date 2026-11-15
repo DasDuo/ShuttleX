@@ -38,6 +38,8 @@ final class PanelController {
 
     /// Opens the Settings window. Set by the app delegate, which owns the window.
     var onOpenSettings: () -> Void = {}
+    /// Opens Settings and asks it to show the server editor.
+    var onOpenEditor: () -> Void = {}
     /// Whether another of our windows (Settings) is visible — hiding the panel
     /// must not yank the whole app to the background then. Set by the delegate.
     var hasVisibleAuxWindow: () -> Bool = { false }
@@ -103,14 +105,20 @@ final class PanelController {
         panel.isVisible ? hide(reason: "toggle") : show(anchor: anchor)
     }
 
+    /// How the panel was last opened, so it can be restored the same way
+    /// (e.g. after the server editor closes).
+    private(set) var lastAnchor: Anchor = .center
+
     func show(anchor: Anchor) {
         showCount += 1
+        lastAnchor = anchor
         let anchorName = { if case .center = anchor { return "center" } else { return "statusItem" } }()
         panelLog.notice("panel show (anchor=\(anchorName, privacy: .public))")
         hostingView.rootView = AnyView(
             MenuView(
                 onDismiss: { [weak self] in self?.hide(reason: "menu dismiss") },
-                onOpenSettings: { [weak self] in self?.openSettings() }
+                onOpenSettings: { [weak self] in self?.openSettings() },
+                onOpenEditor: { [weak self] in self?.onOpenEditor() }
             )
             .environment(state)
             .id(showCount)

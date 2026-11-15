@@ -7,6 +7,8 @@ struct MenuView: View {
     var onDismiss: () -> Void = {}
     /// Opens the Settings window (and closes the panel).
     var onOpenSettings: () -> Void = {}
+    /// Opens the server editor for the current source (and closes the panel).
+    var onOpenEditor: () -> Void = {}
 
     @State private var query = ""
     @State private var expandedGroups: Set<String> = []
@@ -41,7 +43,7 @@ struct MenuView: View {
     private var emptyStateHint: String {
         switch state.source {
         case .sshConfig: return "Add hosts to ~/.ssh/config."
-        case .json: return "Edit the JSON file in Settings."
+        case .json: return "Add servers in Settings → “Add / edit servers…”."
         case .remoteJSON: return "Set a remote URL in Settings."
         }
     }
@@ -103,6 +105,17 @@ struct MenuView: View {
                 .padding(.horizontal, 6)
                 .padding(.vertical, 3)
                 .background(.quaternary.opacity(0.6), in: Capsule())
+            // Direct way into the server editor. Hidden for ~/.ssh/config,
+            // which ShuttleX reads but never edits — no dead button.
+            if state.source != .sshConfig {
+                Button {
+                    onOpenEditor()
+                } label: {
+                    Image(systemName: "square.and.pencil")
+                }
+                .buttonStyle(.borderless)
+                .help("Add / edit servers")
+            }
             Button {
                 state.reload()
             } label: {

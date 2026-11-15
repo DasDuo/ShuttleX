@@ -4,6 +4,19 @@ All notable changes to ShuttleX are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.17.0] - 2026-11-15
+
+### Added
+- **Edit button in the menu**: the top bar now carries a pencil next to Reload and the gear that opens the server editor directly — previously the editor was only reachable through Settings. It's hidden when the source is `~/.ssh/config`, which ShuttleX reads but never edits.
+
+### Changed
+- **The server editor is its own window** instead of a sheet on top of Settings: it manages your server list rather than configuring the app. It resizes for long lists, and closing it brings the menu back when that's where you came from.
+- The Settings window is wider (520pt) and resizable — it used to be exactly as wide as the sheets it hosted, which left them sitting flush against the window edges.
+
+### Fixed
+- With an empty server list, the menu said *"Edit the JSON file in Settings."* — sending you to hand-edit JSON instead of to the built-in editor that exists so you don't have to. It now points at the editor.
+- `build.sh` now asks the toolchain where it put the binary instead of hard-coding the path. Swift 6.4 moved the build output, so building locally silently packaged a stale binary from an older toolchain. Only affects building from source — released builds were never affected.
+
 ## [1.16.0] - 2026-11-15
 
 ### Added
@@ -251,6 +264,7 @@ The `1.16.0-beta.1` / `beta.2` prereleases contained a **URL entry type** (openi
 ### Added
 - Initial release. A menu-bar SSH launcher built with SwiftUI (`MenuBarExtra`), pure arm64 for Apple Silicon. Hosts from `~/.ssh/config` or a JSON file; choose your terminal (Terminal, iTerm2, Ghostty, Warp, Alacritty, kitty, WezTerm); open in a new window, tab, or split.
 
+[1.17.0]: https://github.com/DasDuo/ShuttleX/compare/v1.16.0...v1.17.0
 [1.16.0]: https://github.com/DasDuo/ShuttleX/compare/v1.15.0...v1.16.0
 [1.15.0]: https://github.com/DasDuo/ShuttleX/compare/v1.14.6...v1.15.0
 [1.14.6]: https://github.com/DasDuo/ShuttleX/compare/v1.14.5...v1.14.6

@@ -51,6 +51,11 @@ final class AppState {
         didSet { UserDefaults.standard.set(tagsEnabled, forKey: "tagsEnabled") }
     }
 
+    /// Opens the server editor window for the current source. The app delegate
+    /// owns that window and sets this; both the menu's edit button and the
+    /// button in Settings go through it.
+    @ObservationIgnored var openEditor: () -> Void = {}
+
     /// Opt-in (default off): dense menu rows — server name only, no icon, no
     /// detail line, tighter spacing. For long lists.
     var compactList: Bool {

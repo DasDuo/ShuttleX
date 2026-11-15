@@ -5,11 +5,22 @@ cd "$(dirname "$0")"
 
 swift build -c release --arch arm64
 
+# Ask the toolchain where it put the binary instead of hard-coding the path.
+# Swift 6.4 moved the output from .build/<triple>/release to .build/out/Products/
+# — with a hard-coded path, a stale binary from an older toolchain gets packaged
+# silently, which is far worse than a build error.
+BIN_DIR="$(swift build -c release --arch arm64 --show-bin-path)"
+BIN="$BIN_DIR/ShuttleX"
+if [[ ! -x "$BIN" ]]; then
+  echo "error: no ShuttleX binary at $BIN" >&2
+  exit 1
+fi
+
 APP="build/ShuttleX.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
-cp ".build/arm64-apple-macosx/release/ShuttleX" "$APP/Contents/MacOS/ShuttleX"
+cp "$BIN" "$APP/Contents/MacOS/ShuttleX"
 cp "Resources/Info.plist" "$APP/Contents/Info.plist"
 
 # Pick the app icon by release channel so prerelease builds carry a BETA badge
