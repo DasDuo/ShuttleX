@@ -4,6 +4,15 @@ All notable changes to ShuttleX are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.0] - 2026-11-15
+
+### Added
+- **←/→ jump between groups** in the menu: while browsing with the keyboard (empty search field), ←/→ move the selection to the previous/next group — the fast way past a big group. While typing a query, ←/→ keep moving the text cursor as usual.
+- **Compact list** (Settings → General, off by default): dense menu rows — server name only, no icon, no detail line, tighter spacing. Handy for long lists.
+
+### Note on the 1.16.0 betas
+The `1.16.0-beta.1` / `beta.2` prereleases contained a **URL entry type** (opening `https://`, `vnc://`, `rdp://` targets). It has been **removed**: ShuttleX is an SSH launcher, and opening other protocols pulls it away from that one purpose. Those prereleases also shipped without the two features above — the code was left out of the release commit by mistake, which is fixed here.
+
 ## [1.15.0] - 2026-08-14
 
 ### Added
@@ -242,6 +251,7 @@ All notable changes to ShuttleX are documented here. The format is based on
 ### Added
 - Initial release. A menu-bar SSH launcher built with SwiftUI (`MenuBarExtra`), pure arm64 for Apple Silicon. Hosts from `~/.ssh/config` or a JSON file; choose your terminal (Terminal, iTerm2, Ghostty, Warp, Alacritty, kitty, WezTerm); open in a new window, tab, or split.
 
+[1.16.0]: https://github.com/DasDuo/ShuttleX/compare/v1.15.0...v1.16.0
 [1.15.0]: https://github.com/DasDuo/ShuttleX/compare/v1.14.6...v1.15.0
 [1.14.6]: https://github.com/DasDuo/ShuttleX/compare/v1.14.5...v1.14.6
 [1.14.5]: https://github.com/DasDuo/ShuttleX/compare/v1.14.4...v1.14.5

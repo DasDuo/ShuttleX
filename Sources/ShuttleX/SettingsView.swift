@@ -169,6 +169,11 @@ struct SettingsView: View {
                     .font(.callout)
                     .foregroundStyle(.secondary)
 
+                Toggle("Compact list", isOn: $state.compactList)
+                Text("Dense menu rows: server name only — no icon, no detail line, tighter spacing. Handy for long lists.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+
                 Stepper(value: $state.openAllInterval, in: 1...10, step: 1) {
                     Text("Open-all stagger: \(Int(state.openAllInterval)) s")
                 }
