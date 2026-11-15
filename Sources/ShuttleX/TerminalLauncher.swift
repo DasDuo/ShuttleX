@@ -37,7 +37,7 @@ enum TerminalLauncher {
         }
         let isRunning = NSWorkspace.shared.runningApplications.contains { $0.bundleIdentifier == terminal.rawValue }
         let mode = effectiveMode(requested: requestedMode, supported: terminal.supportedModes, isRunning: isRunning)
-        let profile = host.profile ?? "Default"
+        let profile = host.profile
         switch terminal {
         case .terminal:
             try runAppleScript(terminalScript(host.command, mode: mode, isRunning: isRunning), app: terminal.displayName)
@@ -108,10 +108,23 @@ enum TerminalLauncher {
         }
     }
 
-     private static func itermScript(_ command: String, profile:String, mode: LaunchMode, isRunning: Bool) -> String {
+    /// `with default profile` unless an entry names one. Falling back to a
+    /// profile literally called "Default" would break for anyone who renamed or
+    /// removed it; iTerm2's own default is whatever the user configured.
+    /// The name is escaped like any other value interpolated into AppleScript —
+    /// a quote in a profile name would otherwise end the string literal.
+    static func profileClause(_ profile: String?) -> String {
+        guard let profile, !profile.trimmingCharacters(in: .whitespaces).isEmpty else {
+            return "with default profile"
+        }
+        return "with profile \"\(appleScriptEscaped(profile))\""
+    }
+
+    private static func itermScript(_ command: String, profile: String?, mode: LaunchMode, isRunning: Bool) -> String {
         let escaped = appleScriptEscaped(command)
+        let profileClause = profileClause(profile)
         let newWindowBody = """
-                set newWindow to (create window with profile "\(profile)")
+                set newWindow to (create window \(profileClause))
                 tell current session of newWindow
                     write text "\(escaped)"
                 end tell
@@ -152,7 +165,7 @@ enum TerminalLauncher {
             \(newWindowBody)
                 else
                     tell current window
-                        set newTab to (create tab with profile "\(profile)")
+                        set newTab to (create tab \(profileClause))
                         tell current session of newTab
                             write text "\(escaped)"
                         end tell
@@ -169,7 +182,7 @@ enum TerminalLauncher {
             \(newWindowBody)
                 else
                     tell current session of current window
-                        set newSession to (split \(direction) with profile "\(profile)")
+                        set newSession to (split \(direction) \(profileClause))
                     end tell
                     tell newSession
                         write text "\(escaped)"

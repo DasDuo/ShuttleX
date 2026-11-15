@@ -572,3 +572,44 @@ private func makeTempDir() -> URL {
     JSONHostStore.snapshotIfChanged(url)
     #expect(JSONHostStore.backups(in: dir, base: "servers", ext: "json").count == 3)
 }
+
+// MARK: - iTerm2 profiles
+
+@Test func readsProfileNamesFromITermPreferences() {
+    let prefs: [String: Any] = ["New Bookmarks": [
+        ["Name": "Default", "Guid": "a"],
+        ["Name": "Prod (red)", "Guid": "b"],
+        ["Name": "   ", "Guid": "c"],   // blank names are not choosable
+        ["Guid": "d"],                   // nameless entry
+    ]]
+    #expect(ITermProfiles.names(in: prefs) == ["Default", "Prod (red)"])
+    #expect(ITermProfiles.names(in: [:]).isEmpty)
+    #expect(ITermProfiles.names(in: ["New Bookmarks": "not an array"]).isEmpty)
+}
+
+@Test func profileClauseEscapesAndFallsBackToITermsOwnDefault() {
+    // No profile set: use whatever iTerm2 considers its default. A literal
+    // "Default" would break for anyone who renamed or removed that profile.
+    #expect(TerminalLauncher.profileClause(nil) == "with default profile")
+    #expect(TerminalLauncher.profileClause("") == "with default profile")
+    #expect(TerminalLauncher.profileClause("  ") == "with default profile")
+
+    #expect(TerminalLauncher.profileClause("Prod") == "with profile \"Prod\"")
+
+    // A quote in the name must not end the AppleScript string literal.
+    let clause = TerminalLauncher.profileClause("ev\"il")
+    #expect(clause == "with profile \"ev\\\"il\"")
+}
+
+@Test func remoteSourcesCannotChooseAProfile() throws {
+    // A profile can carry its own "send text at start" command, so a remote
+    // inventory must not be able to select one — same rule as `command`.
+    let json = """
+    {"hosts":[{"name":"web","host":"h","profile":"Prod"}]}
+    """
+    let local = try JSONHostStore.decode(Data(json.utf8)).first!.hosts.first!
+    #expect(local.profile == "Prod")
+
+    let remote = try JSONHostStore.decode(Data(json.utf8), allowCommands: false).first!.hosts.first!
+    #expect(remote.profile == nil)
+}

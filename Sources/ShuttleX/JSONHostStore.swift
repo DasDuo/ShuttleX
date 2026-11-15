@@ -82,15 +82,18 @@ enum JSONHostStore {
                                  userOverrides: [String: String] = [:], favoriteKeys: Set<String> = []) -> SSHHost {
         let tags = entry.tags ?? []
         // A raw command takes over completely — but never from a remote source.
+        // A profile is a launch directive, not inventory: an iTerm2 profile can
+        // carry its own "send text at start" command, so a remote list must not
+        // be able to choose one — same rule as `command`.
+        let profile = allowCommands ? entry.profile : nil
         if allowCommands, let command = entry.command, !command.isEmpty {
-            return SSHHost(name: entry.name, detail: command, profile: entry.profile, command: command,
+            return SSHHost(name: entry.name, detail: command, profile: profile, command: command,
                            favorite: entry.favorite ?? false, tags: tags)
         }
 
         let host = entry.host ?? entry.name
         let serverKey = RemoteUserOverrides.key(host: host, port: entry.port)
         let override = userOverrides[serverKey]
-        let profile = entry.profile ?? "Default"
         // A favorite comes from the JSON entry (local source) or the local
         // per-person favorites set (remote source).
         let favorite = (entry.favorite ?? false) || favoriteKeys.contains(serverKey)
@@ -107,7 +110,7 @@ enum JSONHostStore {
         if let remote { parts.append(Shell.quote(remote)) }
 
         let detail = remote.map { "\(target): \($0)" } ?? target
-        return SSHHost(name: entry.name, detail: detail, profile:profile, command: parts.joined(separator: " "),
+        return SSHHost(name: entry.name, detail: detail, profile: profile, command: parts.joined(separator: " "),
                        favorite: favorite, favoriteKey: serverKey, tags: tags)
     }
 

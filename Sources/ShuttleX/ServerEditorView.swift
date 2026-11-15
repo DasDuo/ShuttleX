@@ -29,7 +29,11 @@ struct ServerEditorView: View {
         .frame(width: 460, height: 560)
         .onAppear { file = JSONHostStore.loadFile(from: state.jsonURL) }
         .sheet(item: $form) { model in
-            EntryForm(model: model, existingGroups: groups.map(\.name), defaultUser: state.defaultUser, tagsEnabled: state.tagsEnabled) { result in
+            EntryForm(model: model, existingGroups: groups.map(\.name), defaultUser: state.defaultUser,
+                      tagsEnabled: state.tagsEnabled,
+                      // Profiles only mean something for iTerm2; every other
+                      // terminal ignores them, so don't offer the row at all.
+                      iTermProfiles: state.terminal == .iterm2 ? ITermProfiles.installed() : nil) { result in
                 if let original = result.original {
                     file = ServerEditing.update(file, group: original.group, id: original.id,
                                                 to: result.entry, newGroup: result.group)
@@ -203,16 +207,24 @@ struct EntryForm: View {
     let existingGroups: [String]
     let defaultUser: String
     let tagsEnabled: Bool
+    /// Profiles found in iTerm2, or nil when iTerm2 isn't the selected terminal.
+    let iTermProfiles: [String]?
     let onSave: (Result) -> Void
     @Environment(\.dismiss) private var dismiss
 
-    init(model: Model, existingGroups: [String], defaultUser: String = "", tagsEnabled: Bool = false, onSave: @escaping (Result) -> Void) {
+    init(model: Model, existingGroups: [String], defaultUser: String = "", tagsEnabled: Bool = false,
+         iTermProfiles: [String]? = nil, onSave: @escaping (Result) -> Void) {
         _model = State(initialValue: model)
         self.existingGroups = existingGroups
         self.defaultUser = defaultUser
         self.tagsEnabled = tagsEnabled
+        self.iTermProfiles = iTermProfiles
         self.onSave = onSave
     }
+
+    /// iTerm2 always ships one profile, so "nothing to choose from" means the
+    /// user hasn't created any of their own yet.
+    private var hasUsableProfiles: Bool { (iTermProfiles?.count ?? 0) > 1 }
 
     private var validationError: String? {
         if model.name.trimmingCharacters(in: .whitespaces).isEmpty { return "Name is required." }
@@ -276,7 +288,25 @@ struct EntryForm: View {
                         }
                         TextField("Host or IP", text: $model.host)
                         TextField("Port (optional)", text: $model.port)
-                        TextField("Profile (optional)", text: $model.profile)
+                        if let iTermProfiles {
+                            if hasUsableProfiles {
+                                Picker("iTerm2 profile", selection: $model.profile) {
+                                    Text("iTerm2 default").tag("")
+                                    ForEach(iTermProfiles, id: \.self) { Text($0).tag($0) }
+                                    // Keep a profile that was removed in iTerm2
+                                    // visible instead of silently blanking the
+                                    // field — otherwise saving would drop it.
+                                    if !model.profile.isEmpty, !iTermProfiles.contains(model.profile) {
+                                        Text("\(model.profile) — not found in iTerm2").tag(model.profile)
+                                    }
+                                }
+                            } else {
+                                LabeledContent("iTerm2 profile", value: "iTerm2 default")
+                                Text("There is no profile configured yet within your iTerm2 installation. Create them in iTerm2 → Settings → Profiles, otherwise this feature can't be used.")
+                                    .font(.callout)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                         TextField("Remote command (optional)", text: $model.remoteCommand)
                         Text("Leave the remote command empty for an interactive shell. If set, it runs on the server with a TTY (e.g. htop).")
                             .font(.callout)
