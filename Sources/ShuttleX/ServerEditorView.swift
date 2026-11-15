@@ -117,7 +117,6 @@ struct ServerEditorView: View {
     }
 
     private func detail(_ entry: JSONHostStore.Entry) -> String {
-        if let url = entry.url, !url.isEmpty { return url }
         if let command = entry.command, !command.isEmpty { return command }
         let host = entry.host ?? ""
         var target = entry.user.map { "\($0)@\(host)" } ?? host
@@ -166,8 +165,7 @@ struct EntryForm: View {
         var port = ""
         var remoteCommand = ""
         var command = ""
-        var url = ""
-        var kind: Kind = .connection
+        var rawMode = false
         var favorite = false
         var tags = ""
         var original: (group: String, id: UUID)?
@@ -187,24 +185,9 @@ struct EntryForm: View {
             port = entry.port.map(String.init) ?? ""
             remoteCommand = entry.remoteCommand ?? ""
             command = entry.command ?? ""
-            url = entry.url ?? ""
-            if !(entry.url ?? "").isEmpty { kind = .url }
-            else if !(entry.command ?? "").isEmpty { kind = .raw }
+            rawMode = !(entry.command ?? "").isEmpty
             favorite = entry.favorite ?? false
             original = (group: group, id: entry.id)
-        }
-    }
-
-    /// What an entry does when clicked.
-    enum Kind: String, CaseIterable, Identifiable {
-        case connection, raw, url
-        var id: String { rawValue }
-        var label: String {
-            switch self {
-            case .connection: return "SSH"
-            case .raw: return "Custom command"
-            case .url: return "URL"
-            }
         }
     }
 
@@ -231,16 +214,11 @@ struct EntryForm: View {
 
     private var validationError: String? {
         if model.name.trimmingCharacters(in: .whitespaces).isEmpty { return "Name is required." }
-        switch model.kind {
-        case .raw:
+        if model.rawMode {
             if model.command.trimmingCharacters(in: .whitespaces).isEmpty {
-                return "Enter a command, or switch the type back to SSH."
+                return "Enter a command, or turn off raw command mode."
             }
-        case .url:
-            let url = model.url.trimmingCharacters(in: .whitespaces)
-            if url.isEmpty { return "Enter a URL." }
-            if URL(string: url)?.scheme == nil { return "The URL needs a scheme, e.g. https:// or vnc://." }
-        case .connection:
+        } else {
             let host = model.host.trimmingCharacters(in: .whitespaces)
             if host.isEmpty { return "Host or IP is required." }
             if !HostValidation.isSafe(host) { return "Host contains invalid characters." }
@@ -269,31 +247,20 @@ struct EntryForm: View {
                             .fixedSize()
                         }
                     }
-                    Picker("Type", selection: $model.kind) {
-                        ForEach(Kind.allCases) { kind in Text(kind.label).tag(kind) }
-                    }
-                    .pickerStyle(.segmented)
+                    Toggle("Raw custom command", isOn: $model.rawMode)
                     Toggle("Favorite", isOn: $model.favorite)
                     if tagsEnabled {
                         TextField("Tags (comma-separated)", text: $model.tags, prompt: Text("prod, web, eu"))
                     }
                 }
-                switch model.kind {
-                case .raw:
+                if model.rawMode {
                     Section("Custom command") {
                         TextField("Command", text: $model.command)
                         Text("Runs verbatim and ignores user/host/port — e.g. a jump host or tunnel.")
                             .font(.callout)
                             .foregroundStyle(.secondary)
                     }
-                case .url:
-                    Section("URL") {
-                        TextField("URL", text: $model.url, prompt: Text("https://proxmox.local:8006"))
-                        Text("Opens directly in the default app — no terminal. Works for web UIs (https://), Screen Sharing (vnc://), RDP (rdp://), and anything else with a URL scheme.")
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                    }
-                case .connection:
+                } else {
                     Section("Connection") {
                         Toggle("Use default user", isOn: $model.useDefaultUser)
                         if model.useDefaultUser {
@@ -347,20 +314,13 @@ struct EntryForm: View {
             .filter { !$0.isEmpty }
         let tags: [String]? = tagList.isEmpty ? nil : tagList
         let entry: JSONHostStore.Entry
-        switch model.kind {
-        case .raw:
+        if model.rawMode {
             entry = JSONHostStore.Entry(
                 name: name, host: nil, user: nil, port: nil,
                 command: model.command.trimmingCharacters(in: .whitespaces),
                 remoteCommand: nil, favorite: favorite, tags: tags
             )
-        case .url:
-            entry = JSONHostStore.Entry(
-                name: name, host: nil, user: nil, port: nil, command: nil,
-                remoteCommand: nil, favorite: favorite, tags: tags,
-                url: model.url.trimmingCharacters(in: .whitespaces)
-            )
-        case .connection:
+        } else {
             let user = model.useDefaultUser ? "" : model.user.trimmingCharacters(in: .whitespaces)
             let remote = model.remoteCommand.trimmingCharacters(in: .whitespaces)
             entry = JSONHostStore.Entry(

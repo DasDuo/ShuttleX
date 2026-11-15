@@ -294,31 +294,6 @@ private func makeTempDir() -> URL {
     #expect(HotkeyRecorder.hasRequiredModifiers([.command, .shift]))
 }
 
-@Test func urlEntriesPersistLoadAndAreStrippedFromRemote() throws {
-    let dir = makeTempDir(); defer { try? FileManager.default.removeItem(at: dir) }
-    let url = dir.appendingPathComponent("servers.json")
-    let file = JSONHostStore.File(groups: [.init(name: "g", hosts: [
-        .init(name: "proxmox · web", host: nil, user: nil, port: nil, command: nil,
-              remoteCommand: nil, favorite: true, tags: ["prod"], url: "https://pve.local:8006"),
-        .init(name: "ssh-box", host: "h", user: nil, port: nil, command: nil),
-    ])], hosts: nil)
-    try JSONHostStore.write(file, to: url)
-
-    // Round trip: URL entry carries urlString, no ssh command; favorite/tags kept.
-    let hosts = try JSONHostStore.load(from: url).first!.hosts
-    let web = hosts.first { $0.name == "proxmox · web" }!
-    #expect(web.urlString == "https://pve.local:8006")
-    #expect(web.command == "")
-    #expect(web.favorite && web.tags == ["prod"])
-    #expect(hosts.first { $0.name == "ssh-box" }?.urlString == nil)
-
-    // A remote source must not deliver openable URLs (inventory only) — the
-    // entry degrades to a plain ssh host like stripped commands do.
-    let data = try Data(contentsOf: url)
-    let remote = try JSONHostStore.decode(data, allowCommands: false).first!.hosts
-    #expect(remote.first { $0.name == "proxmox · web" }?.urlString == nil)
-}
-
 // MARK: - Search filtering
 
 @Test func searchMatchesGroupNameOrHost() {

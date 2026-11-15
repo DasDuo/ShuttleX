@@ -28,12 +28,9 @@ enum JSONHostStore {
         var favorite: Bool?
         /// Optional free-form tags (written only when non-empty).
         var tags: [String]?
-        /// URL-type entry: opened directly (browser / vnc:// / rdp://) instead
-        /// of launching ssh. Takes precedence over all connection fields.
-        var url: String?
 
         private enum CodingKeys: String, CodingKey {
-            case name, host, user, port, command, remoteCommand, favorite, tags, url
+            case name, host, user, port, command, remoteCommand, favorite, tags
         }
     }
 
@@ -82,12 +79,6 @@ enum JSONHostStore {
     private static func makeHost(_ entry: Entry, defaultUser: String = "", allowCommands: Bool = true,
                                  userOverrides: [String: String] = [:], favoriteKeys: Set<String> = []) -> SSHHost {
         let tags = entry.tags ?? []
-        // A URL entry opens directly (no terminal). Like commands, never honored
-        // from a remote source — a remote list must not open arbitrary schemes.
-        if allowCommands, let url = entry.url, !url.isEmpty {
-            return SSHHost(name: entry.name, detail: url, command: "",
-                           favorite: entry.favorite ?? false, tags: tags, urlString: url)
-        }
         // A raw command takes over completely — but never from a remote source.
         if allowCommands, let command = entry.command, !command.isEmpty {
             return SSHHost(name: entry.name, detail: command, command: command,
