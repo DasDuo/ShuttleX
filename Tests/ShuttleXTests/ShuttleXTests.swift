@@ -572,3 +572,97 @@ private func makeTempDir() -> URL {
     JSONHostStore.snapshotIfChanged(url)
     #expect(JSONHostStore.backups(in: dir, base: "servers", ext: "json").count == 3)
 }
+
+// MARK: - Readable JSON errors
+
+@Test func decodingErrorsNameTheFieldAndWhereItIs() throws {
+    // Foundation says "The data couldn't be read because it is missing." for
+    // all of these, which is useless while hand-editing a file.
+    func message(_ json: String) -> String {
+        do {
+            _ = try JSONHostStore.decode(Data(json.utf8))
+            return "(no error)"
+        } catch {
+            return JSONHostStore.describe(error)
+        }
+    }
+
+    let missingField = message(#"{"groups":[{"name":"g","hosts":[{"host":"h"}]}]}"#)
+    #expect(missingField.contains("groups[0].hosts[0]"))
+    #expect(missingField.contains("name"))
+
+    let wrongType = message(#"{"hosts":[{"name":42}]}"#)
+    #expect(wrongType.contains("hosts[0].name"))
+
+    let nullValue = message(#"{"hosts":[{"name":null}]}"#)
+    #expect(nullValue.contains("hosts[0].name"))
+
+    // No parser reports a line or column for syntax errors, so point at the
+    // editor rather than pretending to know more than we do.
+    let syntax = message(#"{"hosts":[{"name":"web"}"#)
+    #expect(syntax.contains("not valid JSON"))
+    #expect(!syntax.contains("Add / edit servers"))   // no hint unless asked for
+    func hinted(_ json: String) -> String {
+        do { _ = try JSONHostStore.decode(Data(json.utf8)); return "" }
+        catch { return JSONHostStore.describe(error, syntaxHint: "use the editor.") }
+    }
+    #expect(hinted(#"{"hosts":[{"name":"web"}"#).hasSuffix("use the editor."))
+
+    // Non-decoding errors keep their own wording.
+    struct Boom: LocalizedError { var errorDescription: String? { "network is down" } }
+    #expect(JSONHostStore.describe(Boom()) == "network is down")
+}
+
+// MARK: - Remote fetch throttle
+
+@Test func remoteFetchIsThrottledPerURLUnlessForced() {
+    let now = Date()
+    let recent = now.addingTimeInterval(-10)
+    let old = now.addingTimeInterval(-120)
+
+    // Same URL, fetched moments ago → use the cache.
+    #expect(AppState.shouldSkipFetch(force: false, url: "https://a", lastURL: "https://a",
+                                     lastFetch: recent, now: now))
+    // The interval has passed → fetch again.
+    #expect(!AppState.shouldSkipFetch(force: false, url: "https://a", lastURL: "https://a",
+                                      lastFetch: old, now: now))
+    // A different URL is never covered by the previous fetch.
+    #expect(!AppState.shouldSkipFetch(force: false, url: "https://b", lastURL: "https://a",
+                                      lastFetch: recent, now: now))
+    // Nothing fetched yet.
+    #expect(!AppState.shouldSkipFetch(force: false, url: "https://a", lastURL: nil,
+                                      lastFetch: nil, now: now))
+    // Reload button / edited URL always wins.
+    #expect(!AppState.shouldSkipFetch(force: true, url: "https://a", lastURL: "https://a",
+                                      lastFetch: recent, now: now))
+}
+
+// MARK: - Which login user wins
+
+@Test func loginUserPrecedenceIsOverrideThenEntryThenDefault() throws {
+    let json = #"""
+    {"hosts":[
+      {"name":"own",      "host":"h1", "user":"entryuser"},
+      {"name":"inherits", "host":"h2"},
+      {"name":"override", "host":"h3", "user":"entryuser", "port":2222}
+    ]}
+    """#
+    let overrides = [RemoteUserOverrides.key(host: "h3", port: 2222): "mine"]
+    let hosts = try JSONHostStore.decode(Data(json.utf8), defaultUser: "fallback",
+                                         userOverrides: overrides).first!.hosts
+
+    func detail(_ name: String) -> String? { hosts.first { $0.name == name }?.detail }
+    // An entry's own user beats the global default…
+    #expect(detail("own") == "entryuser@h1")
+    // …no user of its own falls back to the default…
+    #expect(detail("inherits") == "fallback@h2")
+    // …and a local override beats both. (The JSON source shows user@host in
+    // the menu; the port lives in the ssh command, not the detail line.)
+    #expect(detail("override") == "mine@h3")
+    let overrideHost = hosts.first { $0.name == "override" }
+    #expect(overrideHost?.command.contains("-p 2222") == true)
+
+    // Without a default and without a user, connect without one.
+    let bare = try JSONHostStore.decode(Data(#"{"hosts":[{"name":"x","host":"h"}]}"#.utf8)).first!.hosts
+    #expect(bare.first?.detail == "h")
+}

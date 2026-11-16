@@ -4,6 +4,11 @@ All notable changes to ShuttleX are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.17.2] - 2026-11-16
+
+### Fixed
+- A broken servers file now says **what** is wrong and **where**: *"Can't read the servers file — `groups[0].hosts[1]` is missing the field `name`."* macOS reports all of these as *"The data couldn't be read because it is missing."*, which is no help while hand-editing a file. Syntax errors still carry no line number — no macOS JSON parser provides one — so that message points at the built-in editor, which always writes valid JSON. The same wording is used when a remote inventory doesn't parse.
+
 ## [1.17.1] - 2026-11-15
 
 ### Fixed
@@ -271,6 +276,7 @@ The `1.16.0-beta.1` / `beta.2` prereleases contained a **URL entry type** (openi
 ### Added
 - Initial release. A menu-bar SSH launcher built with SwiftUI (`MenuBarExtra`), pure arm64 for Apple Silicon. Hosts from `~/.ssh/config` or a JSON file; choose your terminal (Terminal, iTerm2, Ghostty, Warp, Alacritty, kitty, WezTerm); open in a new window, tab, or split.
 
+[1.17.2]: https://github.com/DasDuo/ShuttleX/compare/v1.17.1...v1.17.2
 [1.17.1]: https://github.com/DasDuo/ShuttleX/compare/v1.17.0...v1.17.1
 [1.17.0]: https://github.com/DasDuo/ShuttleX/compare/v1.16.0...v1.17.0
 [1.16.0]: https://github.com/DasDuo/ShuttleX/compare/v1.15.0...v1.16.0

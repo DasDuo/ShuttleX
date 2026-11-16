@@ -108,6 +108,49 @@ enum JSONHostStore {
                        favorite: favorite, favoriteKey: serverKey, tags: tags)
     }
 
+    // MARK: - Error messages
+
+    /// Turns a decoding failure into something a person can act on.
+    ///
+    /// Foundation's own wording names neither the field nor where it sits
+    /// ("The data couldn't be read because it is missing."), which is no help
+    /// at all when hand-editing a file. A `DecodingError` does carry the coding
+    /// path and the offending key, so say those out loud. Syntax errors are the
+    /// exception: neither JSONDecoder nor JSONSerialization reports a line or
+    /// column, so point at the editor instead of pretending to know more.
+    /// `syntaxHint` is appended to syntax errors only — the file source can
+    /// point at the editor, a remote URL can't.
+    static func describe(_ error: Error, syntaxHint: String? = nil) -> String {
+        guard let decoding = error as? DecodingError else { return error.localizedDescription }
+        switch decoding {
+        case .keyNotFound(let key, let context):
+            return "\(place(context.codingPath)) is missing the field “\(key.stringValue)”."
+        case .typeMismatch(_, let context):
+            return "\(place(context.codingPath)) has the wrong type (text values need quotes around them)."
+        case .valueNotFound(_, let context):
+            return "\(place(context.codingPath)) is empty (null); give it a value or remove the field."
+        case .dataCorrupted:
+            let base = "not valid JSON; look for a missing bracket, quote or comma."
+            return syntaxHint.map { "\(base) \($0)" } ?? base
+        @unknown default:
+            return error.localizedDescription
+        }
+    }
+
+    /// `groups[0].hosts[2]` style location, or a plain words fallback at the top
+    /// level where there is no path to print.
+    private static func place(_ codingPath: [CodingKey]) -> String {
+        var text = ""
+        for key in codingPath {
+            if let index = key.intValue {
+                text += "[\(index)]"
+            } else {
+                text += text.isEmpty ? key.stringValue : ".\(key.stringValue)"
+            }
+        }
+        return text.isEmpty ? "The file" : "“\(text)”"
+    }
+
     /// Writes the JSON file nicely formatted. By default it snapshots the previous
     /// version first; pass `snapshot: false` for trivial changes (e.g. toggling a favorite).
     static func write(_ file: File, to url: URL, snapshot: Bool = true) throws {

@@ -180,7 +180,8 @@ final class AppState {
                 groups = try JSONHostStore.load(from: url, defaultUser: defaultUser)
             } catch {
                 groups = []
-                lastError = "Invalid JSON file: \(error.localizedDescription)"
+                lastError = "Can't read the servers file — "
+                    + JSONHostStore.describe(error, syntaxHint: "“Add / edit servers…” always writes valid JSON.")
             }
         case .remoteJSON:
             reloadRemote(force: force)
@@ -192,7 +193,17 @@ final class AppState {
     /// when the same URL was fetched recently.
     private var lastRemoteFetchURL: String?
     private var lastRemoteFetchAt: Date?
-    private static let remoteFetchInterval: TimeInterval = 60
+    static let remoteFetchInterval: TimeInterval = 60
+
+    /// The throttle decision on its own, so it can be reasoned about and tested
+    /// without a live network or an app instance. A forced reload (Reload
+    /// button, edited URL) always fetches; otherwise the same URL is only
+    /// re-fetched once the interval has passed.
+    static func shouldSkipFetch(force: Bool, url: String, lastURL: String?, lastFetch: Date?,
+                                now: Date = Date(), interval: TimeInterval = remoteFetchInterval) -> Bool {
+        guard !force, url == lastURL, let lastFetch else { return false }
+        return now.timeIntervalSince(lastFetch) < interval
+    }
 
     /// Loads the remote inventory: shows the local cache immediately (so the
     /// menu works offline), then fetches a fresh copy in the background. The
@@ -217,8 +228,8 @@ final class AppState {
         }
 
         // Throttled: same URL fetched recently → cache is fresh enough.
-        if !force, lastRemoteFetchURL == urlString,
-           let last = lastRemoteFetchAt, Date().timeIntervalSince(last) < Self.remoteFetchInterval {
+        if Self.shouldSkipFetch(force: force, url: urlString,
+                                lastURL: lastRemoteFetchURL, lastFetch: lastRemoteFetchAt) {
             return
         }
         lastRemoteFetchURL = urlString
@@ -244,8 +255,8 @@ final class AppState {
                     self.lastError = nil
                 case .failure(let error):
                     self.lastError = self.groups.isEmpty
-                        ? "Couldn't load from the URL: \(error.localizedDescription)"
-                        : "Showing cached servers — couldn't refresh: \(error.localizedDescription)"
+                        ? "Couldn't load from the URL: \(JSONHostStore.describe(error))"
+                        : "Showing cached servers — couldn't refresh: \(JSONHostStore.describe(error))"
                 }
             }
         }
